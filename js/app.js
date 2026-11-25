@@ -5,7 +5,7 @@ import { card, shareImage, canShareFiles, download } from './share.js';
 import { THEMES, applyTheme, initials, sourceFromFile, defaultCrop, clampCrop, drawCrop, cropToPhoto, loadImage } from './profile.js';
 import { liveTotals, finishLive, clock } from './live.js';
 import { RANKS, SUITS, suitOf, rankLabel, isCard, handName, cardHTML } from './cards.js';
-import { t, tn, ord, lang, pref, setPref, translateDOM } from './i18n.js';
+import { t, tn, ord, lang, pref, setPref, translateDOM, CURRENCIES, cur, setCur, sym } from './i18n.js';
 
 const $ = id => document.getElementById(id);
 const APP_VERSION = self.APP_VERSION || '?';
@@ -59,7 +59,7 @@ function renderAnalyse(L) {
     return `<span>${esc(fmtM(m.month))}</span><span class="bw"><i style="${pos ? 'left:50%' : 'right:50%'};width:${w}%;background:var(${pos ? '--gain' : '--loss'})"></i></span><b class="${m.n ? cls(m.profit) : ''}">${m.n ? eur(m.profit, true) : '—'}</b>`;
   }).join('') : `<span class="note">${t('Pas encore de données.')}</span>`;
 
-  const table = rows => rows.length ? `<table><thead><tr><th></th><th>${t('Sessions')}</th><th>${t('Bénéfice')}</th><th>€/h</th></tr></thead><tbody>${rows.map(r =>
+  const table = rows => rows.length ? `<table><thead><tr><th></th><th>${t('Sessions')}</th><th>${t('Bénéfice')}</th><th>${esc(sym())}/h</th></tr></thead><tbody>${rows.map(r =>
     `<tr><td>${esc(r.name)}</td><td>${r.n}</td><td class="${cls(r.profit)}">${eur(r.profit, true)}</td><td>${r.hourly == null ? '—' : esc(eur(r.hourly, true))}</td></tr>`).join('')}</tbody></table>` : '<p class="note">Pas encore de données.</p>';
   $('bylieu').innerHTML = table(byGroup(L, 'lieu', t('Non renseigné')));
   $('byjeu').innerHTML = table(byGroup(L, 'jeu', t('Non renseigné')));
@@ -460,7 +460,12 @@ addEventListener('popstate', () => {
 /* ---------- Langue ---------- */
 function renderLang() {
   document.querySelectorAll('#pflang [data-l]').forEach(b => b.setAttribute('aria-checked', b.dataset.l === pref()));
+  $('pfcur').innerHTML = Object.entries(CURRENCIES).map(([k, c]) => `<button role="radio" data-c="${k}" aria-checked="${k === cur}"><b>${esc(c.sym)}</b> ${esc(t(c.name))}</button>`).join('');
 }
+$('pfcur').onclick = e => {
+  const b = e.target.closest('[data-c]'); if (!b) return;
+  setCur(b.dataset.c); renderLang(); render(); renderLive(); liveResult(); live();
+};
 $('pflang').onclick = e => {
   const b = e.target.closest('[data-l]'); if (!b) return;
   setPref(b.dataset.l); renderLang(); renderProfile(); render(); renderLive(); renderHandBtn();

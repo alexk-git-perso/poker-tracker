@@ -60,7 +60,8 @@ const EN = {
   // Paramètres
   'Paramètres': 'Settings', 'Choisir une photo': 'Choose a photo', 'Recadrer': 'Crop', 'Retirer la photo': 'Remove photo',
   'Main de départ préférée': 'Favourite starting hand', 'Choisir 2 cartes': 'Choose 2 cards', 'Nom de joueur': 'Player name', 'Votre nom ou pseudo': 'Your name or nickname',
-  'Couleur': 'Colour', 'Langue': 'Language', 'Automatique (langue du téléphone)': 'Automatic (phone language)',
+  'Couleur': 'Colour', 'Langue': 'Language', 'Devise': 'Currency', 'Les montants déjà saisis ne sont pas convertis.': 'Amounts already entered are not converted.',
+  'Euro': 'Euro', 'Dollar américain': 'US dollar', 'Livre sterling': 'Pound sterling', 'Franc suisse': 'Swiss franc', 'Dollar canadien': 'Canadian dollar', 'Automatique (langue du téléphone)': 'Automatic (phone language)',
   'Le nom, la photo et la couleur apparaissent aussi sur les images que vous partagez. Tout reste sur cet appareil.': 'Your name, photo and colour also appear on the images you share. Everything stays on this device.',
   'À propos': 'About', 'Version {v}': 'Version {v}', 'Code source': 'Source code',
   'Suivi de parties de poker. Vos données restent sur cet appareil.': 'Poker session tracker. Your data stays on this device.',
@@ -87,8 +88,22 @@ export function setPref(p) {
   translateDOM();
 }
 
+// Devise : simple affichage, les montants ne sont pas convertis
+export const CURRENCIES = {
+  EUR: { sym: '€', name: 'Euro' }, USD: { sym: '$', name: 'Dollar américain' }, GBP: { sym: '£', name: 'Livre sterling' },
+  CHF: { sym: 'CHF', name: 'Franc suisse' }, CAD: { sym: 'C$', name: 'Dollar canadien' },
+};
+const CKEY = 'poker-cur';
+export let cur = (() => { try { const c = localStorage.getItem(CKEY); return CURRENCIES[c] ? c : 'EUR'; } catch (e) { return 'EUR'; } })();
+export const sym = () => CURRENCIES[cur].sym;
+export function setCur(c) {
+  if (!CURRENCIES[c]) return;
+  cur = c; try { localStorage.setItem(CKEY, c); } catch (e) { /* facultatif */ }
+  translateDOM();
+}
+
 export function t(fr, vars) {
-  let s = lang === 'en' ? (EN[fr] ?? fr) : fr;
+  let s = (lang === 'en' ? (EN[fr] ?? fr) : fr).replace('(€)', '(' + sym() + ')');
   if (vars) s = s.replace(/\{(\w+)\}/g, (m, k) => (k in vars ? vars[k] : m));
   return s;
 }

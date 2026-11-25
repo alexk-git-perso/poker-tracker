@@ -172,3 +172,5 @@ html.modal,html.modal body{overflow:hidden;overscroll-behavior:none}
 .about h4{font:700 16px Rubik,sans-serif;margin:0 0 4px}
 .about .note{margin:4px 0}
 .about a{color:inherit;text-decoration:underline}
+.sw button[data-c]{padding:0 14px}
+.sw button[data-c] b{font:700 16px Rubik,sans-serif}

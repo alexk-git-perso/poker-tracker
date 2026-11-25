@@ -33,6 +33,7 @@ Images à partager (version détaillée et version photo) :
 - **Partage en image** d'une session ou du bilan (carte 1080×1350) via le partage natif du téléphone (WhatsApp, Messages…), sinon téléchargement.
 - **Meilleure main** d'une session : sélecteur de cartes visuel, nom de la main détecté (Full, Couleur…), affichée dans l'historique et sur les images.
 - **Paramètres** : nom de joueur, photo (recadrable : glisser, zoomer), couleur et main de départ préférée, repris sur les images partagées.
+- **Devise** au choix dans les Paramètres (€, $, £, CHF, C$), affichage uniquement, sans conversion.
 - **Français / anglais** : langue du téléphone par défaut, modifiable dans les Paramètres (textes, montants, dates, noms des mains et images partagées).
 - **Sauvegarde** : export et import JSON pour garder une copie ou changer d'appareil.
 
