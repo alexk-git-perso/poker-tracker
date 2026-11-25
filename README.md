@@ -31,7 +31,7 @@ Images à partager (version détaillée, version photo et version album avec les
 
 - Sessions **cash game** (par défaut) ou **tournoi** : date, lieu, jeu/limite, buy-in (recaves comprises), cash-out, durée, place finale et nombre de joueurs.
 - **Enregistrement automatique** : pas de bouton Enregistrer, chaque saisie est enregistrée dès que le buy-in et le cash-out sont remplis. « Annuler » revient à l'état d'ouverture de la fiche (ou retire la session créée), fermer avec une saisie incomplète demande confirmation, et « Partager » demande au moins le buy-in et le cash-out.
-- **Session en direct** : « Démarrer maintenant » lance un chrono, on ajoute les recaves pendant la partie, puis on clôture avec le cash-out. Durée, buy-in total et gain horaire sont calculés, et la session en cours survit à la fermeture de l'appli.
+- **Session en direct** : le bouton « Démarrer » de l'accueil demande seulement le buy-in de départ et lance un chrono (type, lieu et jeu repris de la dernière session), on ajoute les recaves pendant la partie, puis on clôture avec le cash-out. Durée, buy-in total et gain horaire sont calculés, et la session en cours survit à la fermeture de l'appli.
 - Courbe du **bénéfice cumulé**, filtre Tout / Cash / Tournoi.
 - Stats : bénéfice horaire, % de sessions gagnantes, plus gros gain et plus grosse perte, ROI et places payées en tournoi.
 - Onglet **Analyse** : bénéfice par mois, par lieu, par jeu/limite, écart-type par session, pire downswing, plus longue série perdante.

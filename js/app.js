@@ -153,7 +153,6 @@ const snap = () => JSON.stringify([ftype, F.map(f => $('f-' + f).value.trim()), 
 function formBtns() {
   $('ft').textContent = t(openedNew ? 'Nouvelle session' : 'Modifier la session');
   $('del').hidden = !editing;
-  $('golive').hidden = $('golivehint').hidden = !openedNew || !!LIVE;
 }
 function openForm(s) {
   clearTimeout(saveT);
@@ -283,7 +282,7 @@ $('dlok').onclick = () => { const f = confirmOk; confirmOk = null; $('dls').clas
 $('undo').onclick = () => { if (lastDel) { S = S.concat(lastDel); persistOne(lastDel); lastDel = null; render(); } $('toast').classList.remove('on'); };
 
 /* ---------- Fenêtres : fermeture ---------- */
-const sheets = ['sh', 'bks', 'shs', 'dls'];
+const sheets = ['sh', 'bks', 'shs', 'dls', 'gls'];
 sheets.forEach(id => $(id).addEventListener('click', e => { if (e.target.id === id) id === 'sh' ? closeForm() : $(id).classList.remove('on'); }));
 document.addEventListener('keydown', e => {
   if (e.key !== 'Escape') return;
@@ -432,7 +431,7 @@ $('pfthemes').onclick = e => { const b = e.target.closest('[data-k]'); if (b) { 
 let tick = null;
 const saveLive = () => (LIVE ? db.setLive(LIVE) : db.clearLive()).catch(() => toast(t('Session en cours non enregistrée sur cet appareil.')));
 function renderLive() {
-  $('lv').hidden = !LIVE;
+  $('lv').hidden = !LIVE; $('startlive').hidden = !!LIVE;
   clearInterval(tick); tick = null;
   if (!LIVE) return;
   const lt = liveTotals(LIVE);
@@ -452,12 +451,21 @@ function liveResult() {
   el.style.color = p >= 0 ? '#e6c36a' : '#ffb3b6';
 }
 const lvShow = which => { $('lv-main').hidden = which !== 'main'; $('lv-fr').hidden = which !== 'rebuy'; $('lv-fe').hidden = which !== 'end'; };
-$('golive').onclick = () => {
-  const amt = +$('f-buyin').value;
-  if (!(amt > 0)) { $('f-buyin').focus(); $('f-buyin').reportValidity?.(); toast(t('Indiquez le buy-in de départ.')); return; }
+// Démarrer une session en direct : seul le buy-in est demandé, le reste vient de la dernière session.
+const liveDefaults = () => { const last = sortByDate(S).pop(); return { type: last?.type || 'cash', lieu: last?.lieu || '', jeu: last?.jeu || '' }; };
+$('startlive').onclick = () => {
+  const d = liveDefaults();
+  $('gl-in').value = '';
+  $('glnote').textContent = [d.type === 'tournoi' ? t('Tournoi') : t('Cash game'), d.lieu, d.jeu].filter(Boolean).join(' · ') + ' — ' + t('repris de la dernière session, modifiable après la partie.');
+  $('gls').classList.add('on');
+};
+$('glx').onclick = () => $('gls').classList.remove('on');
+$('glf').onsubmit = e => {
+  e.preventDefault();
+  const amt = +$('gl-in').value; if (!(amt > 0)) return;
   const now = Date.now();
-  LIVE = { id: uid(), type: ftype, lieu: $('f-lieu').value.trim(), jeu: $('f-jeu').value.trim(), notes: $('f-notes').value.trim(), start: now, buyins: [{ amount: amt, at: now }] };
-  dropCreated(); clearTimeout(saveT); $('sh').classList.remove('on'); render();
+  LIVE = { id: uid(), ...liveDefaults(), notes: '', start: now, buyins: [{ amount: amt, at: now }] };
+  $('gls').classList.remove('on');
   saveLive(); lvShow('main'); renderLive(); scrollTo({ top: 0 });
   toast(t('Session démarrée. Bonne partie !'));
 };
@@ -651,7 +659,7 @@ $('pflang').onclick = e => {
   const b = e.target.closest('[data-l]'); if (!b) return;
   setPref(b.dataset.l); renderLang(); renderProfile(); render(); renderLive(); renderHandBtn();
   $('pfver').textContent = t('Version {v}', { v: APP_VERSION });
-  $('golivehint') && translateDOM();
+  translateDOM();
 };
 
 /* ---------- Installation ---------- */
