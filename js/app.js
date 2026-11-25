@@ -2,7 +2,7 @@ import * as db from './db.js';
 import { summary, byGroup, byMonth, variance, cumulative, sortByDate, profitOf } from './stats.js';
 import { esc, eur, fmtD, fmtM, today, uid, num, pct } from './format.js';
 import { card, shareImage, canShareFiles, download } from './share.js';
-import { THEMES, applyTheme, initials, sourceFromFile, defaultCrop, clampCrop, drawCrop, cropToPhoto, loadImage } from './profile.js';
+import { THEMES, applyTheme, initials, sourceFromFile, defaultCrop, clampCrop, drawCrop, cropToPhoto, loadImage, sessionPhoto } from './profile.js';
 import { liveTotals, finishLive, clock } from './live.js';
 import { RANKS, SUITS, suitOf, rankLabel, isCard, handName, cardHTML } from './cards.js';
 import { t, tn, ord, lang, pref, setPref, translateDOM, CURRENCIES, cur, setCur, sym } from './i18n.js';
@@ -35,7 +35,7 @@ function render() {
   $('list').innerHTML = rev.length ? rev.map(s => {
     const p = profitOf(s), tt = s.type === 'tournoi';
     const meta = fmtD(s.date) + (s.duree ? ' · ' + num(s.duree) + ' h' : '') + (tt && s.place ? ' · ' + ord(s.place) + (s.joueurs ? '/' + s.joueurs : '') : '') + (s.recaves ? ' · ' + tn(s.recaves, '{n} recave', '{n} recaves') : '');
-    return `<button class="row" data-id="${esc(s.id)}"><span class="chipi ${tt ? 't' : ''}">${tt ? 'MTT' : 'CG'}</span><span><span class="d">${esc(s.lieu || t('Session'))}</span> <span class="m">· ${esc(s.jeu || (tt ? t('Tournoi') : t('Cash game')))}</span><br><span class="m">${esc(meta)}</span>${s.hand?.length ? `<span class="cards" title="${esc(handName(s.hand))}">${s.hand.filter(isCard).map(c => cardHTML(c)).join('')}</span>` : ''}</span><span class="p ${cls(p)}">${eur(p, true)}<small>${eur(s.buyin)} → ${eur(s.cashout)}</small></span></button>`;
+    return `<button class="row" data-id="${esc(s.id)}"><span class="chipi ${tt ? 't' : ''}">${tt ? 'MTT' : 'CG'}</span><span><span class="d">${esc(s.lieu || t('Session'))}${s.photo ? `<svg class="ico" viewBox="0 0 24 24" role="img" aria-label="${esc(t('Avec photo'))}"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>` : ''}</span> <span class="m">· ${esc(s.jeu || (tt ? t('Tournoi') : t('Cash game')))}</span><br><span class="m">${esc(meta)}</span>${s.hand?.length ? `<span class="cards" title="${esc(handName(s.hand))}">${s.hand.filter(isCard).map(c => cardHTML(c)).join('')}</span>` : ''}</span><span class="p ${cls(p)}">${eur(p, true)}<small>${eur(s.buyin)} → ${eur(s.cashout)}</small></span></button>`;
   }).join('') : `<div class="empty">${t('Aucune session pour ce filtre. Ajoutez-en une avec « + Session ».')}</div>`;
 
   const opts = k2 => [...new Set(all.map(s => s[k2]).filter(Boolean))].map(v => `<option value="${esc(v)}">`).join('');
@@ -135,6 +135,8 @@ function openForm(s) {
   F.forEach(f => $('f-' + f).value = v[f] ?? '');
   setType(v.type || 'cash');
   formHand = (v.hand || []).filter(isCard); renderHandBtn();
+  setFormPhoto(null);
+  if (v.photo) db.getPhoto(v.photo).then(b => { if (b && editing === s.id) setFormPhoto({ id: v.photo, blob: b, isNew: false }); }).catch(() => {});
   $('sh').classList.add('on');
 }
 const closeForm = () => { $('sh').classList.remove('on'); };
@@ -153,6 +155,10 @@ $('frm').onsubmit = e => {
   const prev = editing && S.find(s => s.id === editing);
   if (prev?.recaves) o.recaves = prev.recaves;
   if (formHand.length) o.hand = formHand.slice();
+  if (formPhoto) {
+    o.photo = formPhoto.id;
+    if (formPhoto.isNew) db.putPhoto(formPhoto.id, formPhoto.blob).catch(() => toast(t('Photo non enregistrée sur cet appareil.')));
+  }
   if (ftype !== 'tournoi') { o.place = null; o.joueurs = null; }
   S = editing ? S.map(s => (s.id === editing ? o : s)) : S.concat(o);
   persistOne(o); closeForm();
@@ -178,7 +184,7 @@ $('undo').onclick = () => { if (lastDel) { S = S.concat(lastDel); persistOne(las
 /* ---------- Fenêtres : fermeture ---------- */
 const sheets = ['sh', 'bks', 'shs'];
 sheets.forEach(id => $(id).addEventListener('click', e => { if (e.target.id === id) id === 'sh' ? closeForm() : $(id).classList.remove('on'); }));
-document.addEventListener('keydown', e => { if (e.key === 'Escape') { if ($('sh').classList.contains('on')) closeForm(); ['bks', 'shs', 'pfs', 'crs', 'hds'].forEach(id => $(id).classList.remove('on')); } });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') { if ($('sh').classList.contains('on')) closeForm(); ['bks', 'shs', 'pfs', 'crs', 'hds', 'phs'].forEach(id => $(id).classList.remove('on')); } });
 
 /* ---------- Sauvegarde ---------- */
 $('bk').onclick = () => { $('bktxt').value = JSON.stringify(S, null, 1); $('bkmsg').textContent = ''; $('bks').classList.add('on'); };
@@ -192,7 +198,7 @@ $('bkfile').onchange = async () => { const f = $('bkfile').files[0]; if (f) { $(
 const clean = s => ({
   id: String(s.id || uid()), type: s.type === 'tournoi' ? 'tournoi' : 'cash', date: String(s.date).slice(0, 10),
   lieu: String(s.lieu || ''), jeu: String(s.jeu || ''), buyin: +s.buyin, cashout: +s.cashout,
-  duree: s.duree == null ? null : +s.duree, place: s.place == null ? null : +s.place, joueurs: s.joueurs == null ? null : +s.joueurs, recaves: +s.recaves || 0, notes: String(s.notes || ''), ...(Array.isArray(s.hand) && s.hand.every(isCard) && s.hand.length ? { hand: s.hand.slice(0, 5) } : {}),
+  duree: s.duree == null ? null : +s.duree, place: s.place == null ? null : +s.place, joueurs: s.joueurs == null ? null : +s.joueurs, recaves: +s.recaves || 0, notes: String(s.notes || ''), ...(typeof s.photo === 'string' && s.photo ? { photo: s.photo } : {}), ...(Array.isArray(s.hand) && s.hand.every(isCard) && s.hand.length ? { hand: s.hand.slice(0, 5) } : {}),
 });
 $('bkimp').onclick = () => {
   try {
@@ -257,7 +263,7 @@ function renderProfile() {
   draw();
 }
 const saveProfile = () => { db.setProfile(P).catch(() => toast(t('Paramètres non enregistrés sur cet appareil.'))); renderProfile(); };
-$('prof').onclick = () => { $('pfname').value = P.name || ''; $('pfver').textContent = t('Version {v}', { v: APP_VERSION }); $('pfs').classList.add('on'); };
+$('prof').onclick = () => { renderStorage(); $('pfname').value = P.name || ''; $('pfver').textContent = t('Version {v}', { v: APP_VERSION }); $('pfs').classList.add('on'); };
 $('pfclose').onclick = () => $('pfs').classList.remove('on');
 $('pfs').addEventListener('click', e => { if (e.target.id === 'pfs') $('pfs').classList.remove('on'); });
 $('pfname').onchange = () => { P = { ...P, name: $('pfname').value.trim() }; saveProfile(); };
@@ -366,6 +372,24 @@ $('lv-drop').onclick = () => {
 };
 document.addEventListener('visibilitychange', () => { if (!document.hidden && LIVE) renderLive(); });
 
+/* ---------- Photo de session ---------- */
+let formPhoto = null; // { id, blob, url, isNew }
+function setFormPhoto(p) {
+  if (formPhoto?.url) URL.revokeObjectURL(formPhoto.url);
+  formPhoto = p ? { ...p, url: URL.createObjectURL(p.blob) } : null;
+  $('f-phview').hidden = $('f-phdel').hidden = !formPhoto;
+  if (formPhoto) $('f-phimg').src = formPhoto.url; else $('f-phimg').removeAttribute('src');
+  $('f-phlbl').textContent = t(formPhoto ? 'Changer la photo' : 'Ajouter une photo');
+}
+$('f-photo').onchange = async () => {
+  const f = $('f-photo').files[0]; $('f-photo').value = ''; if (!f) return;
+  try { setFormPhoto({ id: 'ph-' + uid(), blob: await sessionPhoto(f), isNew: true }); db.persist(); }
+  catch (e) { toast(t('Cette image n’a pas pu être lue.')); }
+};
+$('f-phdel').onclick = () => setFormPhoto(null);
+$('f-phview').onclick = () => { if (formPhoto) { $('phsimg').src = formPhoto.url; $('phs').classList.add('on'); } };
+$('phsx').onclick = () => $('phs').classList.remove('on');
+
 /* ---------- Meilleure main ---------- */
 let formHand = [], pickHand = [], pickSuit = 's', pickMax = 5, onPicked = null;
 const handBtnHTML = (H, empty) => H.length ? `<span class="cards">${H.map(c => cardHTML(c)).join('')}</span>${handName(H) ? `<span>${esc(handName(H))}</span>` : ''}` : `<span>${empty}</span>`;
@@ -457,6 +481,14 @@ addEventListener('popstate', () => {
   setTimeout(() => { fromPop = false; if (anyOpen()) history.pushState({ modal: 1 }, ''); });
 });
 
+/* ---------- Espace de stockage ---------- */
+const mo = b => (b >= 1e9 ? num(+(b / 1e9).toFixed(1)) + (lang === 'en' ? ' GB' : ' Go') : num(+(b / 1e6).toFixed(1)) + (lang === 'en' ? ' MB' : ' Mo'));
+async function renderStorage() {
+  const u = await db.usage(); if (!u) { $('pfstore').textContent = ''; return; }
+  $('pfstore').textContent = [t('Stockage utilisé : {u} (photos comprises).', { u: mo(u.used) }), u.quota ? t('Espace disponible : {q}.', { q: mo(u.quota) }) : '',
+    t(u.persisted ? 'Données protégées contre l’effacement automatique.' : 'Le navigateur peut effacer les données s’il manque de place : faites des sauvegardes.')].filter(Boolean).join(' ');
+}
+
 /* ---------- Langue ---------- */
 function renderLang() {
   document.querySelectorAll('#pflang [data-l]').forEach(b => b.setAttribute('aria-checked', b.dataset.l === pref()));
@@ -501,6 +533,7 @@ render();
 db.getLive().then(l => { LIVE = l || null; renderLive(); }).catch(() => {});
 db.getProfile().then(p => { P = p; if ($('pfs').classList.contains('on')) $('pfname').value = P.name || ''; renderProfile(); }).catch(() => {});
 db.all().then(rows => {
+  setTimeout(() => db.gcPhotos(new Set(rows.map(s => s.photo).filter(Boolean))).catch(() => {}), 3000);
   // Ancienne version : retire toute session d'exemple qui aurait été enregistrée, sans toucher aux vraies
   const demo = rows.filter(s => s.demo || /^demo\d+$/.test(s.id));
   S = rows.filter(s => !demo.includes(s));

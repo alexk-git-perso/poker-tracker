@@ -104,6 +104,15 @@
       <label>Joueurs<input type="number" id="f-joueurs" min="2" inputmode="numeric"></label>
     </div>
     <div class="full hfield"><span class="hlbl" id="f-hlbl">Meilleure main</span><button type="button" class="handbtn" id="f-hand" aria-describedby="f-hlbl"></button></div>
+    <div class="full hfield"><span class="hlbl">Photo</span>
+      <div class="phrow">
+        <button type="button" class="phprev" id="f-phview" hidden aria-label="Voir la photo"><img id="f-phimg" alt=""></button>
+        <div class="phbtns">
+          <label class="btn"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z" fill="none"/><circle cx="12" cy="13" r="3.5" fill="none"/></svg><span id="f-phlbl">Ajouter une photo</span><input type="file" id="f-photo" accept="image/*" hidden></label>
+          <button type="button" class="btn ghost" id="f-phdel" hidden>Retirer la photo</button>
+        </div>
+      </div>
+    </div>
     <label class="full">Notes<input id="f-notes" placeholder="Table, mains marquantes…"></label>
   </div>
   <datalist id="lieux"></datalist><datalist id="jeux"></datalist>
@@ -115,6 +124,7 @@
 <div class="sheet" id="bks" role="dialog" aria-modal="true" aria-labelledby="bt"><div class="panel">
   <h3 id="bt">Sauvegarde</h3>
   <p class="note">Vos données ne quittent pas cet appareil. Pour en garder une copie ou les passer sur un autre appareil, téléchargez le fichier ou copiez le texte. Pour restaurer, choisissez un fichier ou collez une sauvegarde, puis importez.</p>
+  <p class="note">Les photos des sessions ne sont pas incluses dans la sauvegarde.</p>
   <textarea id="bktxt" aria-label="Données JSON"></textarea>
   <label style="margin-top:10px">Ou importer un fichier<input type="file" id="bkfile" accept=".json,application/json" style="height:auto;padding:10px"></label>
   <p class="note" id="bkmsg"></p>
@@ -156,6 +166,7 @@
   <div class="about">
     <h4>À propos</h4>
     <p class="note">Suivi de parties de poker. Vos données restent sur cet appareil.</p>
+    <p class="note" id="pfstore"></p>
     <p class="note"><span id="pfver"></span> · <a href="https://github.com/alexk-git-perso/poker-tracker" target="_blank" rel="noopener">Code source</a></p>
   </div>
   <div class="acts"><button class="btn pri" id="pfclose">Terminé</button></div>
@@ -177,6 +188,11 @@
   <div class="ranks" id="hdranks" aria-label="Valeur"></div>
   <p class="note" style="margin:10px 0 0" id="hdhelp"></p>
   <div class="acts"><button class="btn ghost sp" id="hdclear">Effacer</button><button class="btn" id="hdx">Annuler</button><button class="btn pri" id="hdok">Valider</button></div>
+</div></div>
+
+<div class="sheet viewer" id="phs" role="dialog" aria-modal="true" aria-label="Photo de la session"><div class="panel">
+  <img id="phsimg" alt="Photo de la session">
+  <div class="acts"><button class="btn pri" id="phsx">Fermer</button></div>
 </div></div>
 
 <div class="toast" id="toast"><span id="tmsg"></span><button id="undo">Annuler</button></div>

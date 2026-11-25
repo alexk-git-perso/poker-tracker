@@ -174,3 +174,12 @@ html.modal,html.modal body{overflow:hidden;overscroll-behavior:none}
 .about a{color:inherit;text-decoration:underline}
 .sw button[data-c]{padding:0 14px}
 .sw button[data-c] b{font:700 16px Rubik,sans-serif}
+.phrow{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.phprev{width:88px;height:88px;padding:0;border:0;border-radius:12px;overflow:hidden;cursor:zoom-in;flex:none;background:var(--line)}
+.phprev img{width:100%;height:100%;object-fit:cover;display:block}
+.phprev:focus-visible{outline:3px solid var(--brass);outline-offset:2px}
+.phbtns{display:grid;gap:8px}
+.phbtns label.btn{color:var(--ink);cursor:pointer}
+.viewer .panel{background:#000;width:min(900px,100%)}
+.viewer img{display:block;width:100%;max-height:75vh;object-fit:contain;border-radius:10px}
+.ico{display:inline-block;width:15px;height:15px;vertical-align:-2px;margin-left:6px;fill:none;stroke:currentColor;stroke-width:2}

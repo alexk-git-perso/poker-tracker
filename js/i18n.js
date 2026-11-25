@@ -40,7 +40,11 @@ const EN = {
   'Partager en image': 'Share as image', 'Démarrer maintenant': 'Start now', 'Enregistrer': 'Save',
   '« Démarrer maintenant » lance le chrono avec ce buy-in : vous ajouterez les recaves et le cash-out pendant la partie.': '“Start now” starts the timer with this buy-in: you’ll add rebuys and the cash-out during the game.',
   'Résultat : {p}': 'Result: {p}', 'Session modifiée.': 'Session updated.', 'Session ajoutée.': 'Session added.', 'Session supprimée.': 'Session deleted.',
-  'Choisir les cartes': 'Choose cards',
+  'Choisir les cartes': 'Choose cards', 'Photo': 'Photo', 'Ajouter une photo': 'Add a photo', 'Changer la photo': 'Change photo', 'Voir la photo': 'View photo',
+  'Photo de la session': 'Session photo', 'Photo non enregistrée sur cet appareil.': 'Photo not saved on this device.', 'Avec photo': 'With photo',
+  'Les photos des sessions ne sont pas incluses dans la sauvegarde.': 'Session photos are not included in the backup.',
+  'Stockage utilisé : {u} (photos comprises).': 'Storage used: {u} (photos included).', 'Espace disponible : {q}.': 'Space available: {q}.',
+  'Données protégées contre l’effacement automatique.': 'Data protected from automatic clearing.', 'Le navigateur peut effacer les données s’il manque de place : faites des sauvegardes.': 'The browser may clear data if space runs low: make backups.',
   // Sauvegarde
   'Vos données ne quittent pas cet appareil. Pour en garder une copie ou les passer sur un autre appareil, téléchargez le fichier ou copiez le texte. Pour restaurer, choisissez un fichier ou collez une sauvegarde, puis importez.': 'Your data never leaves this device. To keep a copy or move it to another device, download the file or copy the text. To restore, choose a file or paste a backup, then import.',
   'Données JSON': 'JSON data', 'Ou importer un fichier': 'Or import a file', 'Importer': 'Import', 'Fermer': 'Close', 'Copier': 'Copy', 'Télécharger': 'Download',

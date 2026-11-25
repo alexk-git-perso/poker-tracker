@@ -1,14 +1,15 @@
 // Base locale : IndexedDB, une fiche par session. Rien ne quitte l'appareil.
-const NAME = 'poker', STORE = 'sessions', PREFS = 'settings', LEGACY = 'poker-sessions-v1';
+const NAME = 'poker', STORE = 'sessions', PREFS = 'settings', PHOTOS = 'photos', LEGACY = 'poker-sessions-v1';
 let dbp = null;
 
 function open() {
   if (!dbp) dbp = new Promise((ok, ko) => {
-    const r = indexedDB.open(NAME, 2);
+    const r = indexedDB.open(NAME, 3);
     r.onupgradeneeded = () => {
       const d = r.result;
       if (!d.objectStoreNames.contains(STORE)) d.createObjectStore(STORE, { keyPath: 'id' });
       if (!d.objectStoreNames.contains(PREFS)) d.createObjectStore(PREFS);
+      if (!d.objectStoreNames.contains(PHOTOS)) d.createObjectStore(PHOTOS);
     };
     r.onsuccess = () => ok(r.result);
     r.onerror = () => ko(r.error);
@@ -53,3 +54,18 @@ export const setProfile = p => tx('readwrite', st => st.put(p, 'profile'), PREFS
 export const getLive = () => tx('readonly', st => st.get('live'), PREFS);
 export const setLive = l => tx('readwrite', st => st.put(l, 'live'), PREFS);
 export const clearLive = () => tx('readwrite', st => st.delete('live'), PREFS);
+
+// Photos des sessions : un Blob JPEG par photo, à part des sessions (la liste reste légère)
+export const getPhoto = id => tx('readonly', st => st.get(id), PHOTOS);
+export const putPhoto = (id, blob) => tx('readwrite', st => st.put(blob, id), PHOTOS);
+// Supprime les photos qu'aucune session n'utilise plus (session supprimée, photo remplacée ou retirée)
+export async function gcPhotos(usedIds) {
+  const keys = await tx('readonly', st => st.getAllKeys(), PHOTOS);
+  const drop = keys.filter(k => !usedIds.has(k));
+  if (drop.length) await tx('readwrite', st => { drop.forEach(k => st.delete(k)); }, PHOTOS);
+  return drop.length;
+}
+// Espace utilisé / disponible (octets), si le navigateur le donne
+export async function usage() {
+  try { const e = await navigator.storage.estimate(); return { used: e.usage || 0, quota: e.quota || 0, persisted: await navigator.storage.persisted?.() }; } catch (e) { return null; }
+}
