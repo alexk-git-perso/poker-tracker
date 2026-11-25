@@ -212,7 +212,7 @@ $('frm').onsubmit = e => {
 };
 function toast(m, undo) {
   $('tmsg').textContent = m; $('undo').hidden = !undo; $('toast').classList.add('on');
-  clearTimeout(tt); tt = setTimeout(() => $('toast').classList.remove('on'), 6000);
+  clearTimeout(tt); tt = setTimeout(() => $('toast').classList.remove('on'), undo ? 6000 : 2000);
 }
 function deleteSession(id) {
   lastDel = S.find(s => s.id === id); if (!lastDel) return;
