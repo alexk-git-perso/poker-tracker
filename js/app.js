@@ -199,17 +199,40 @@ function toast(m, undo) {
   $('tmsg').textContent = m; $('undo').hidden = !undo; $('toast').classList.add('on');
   clearTimeout(tt); tt = setTimeout(() => $('toast').classList.remove('on'), 6000);
 }
-$('del').onclick = () => {
-  lastDel = S.find(s => s.id === editing);
-  S = S.filter(s => s.id !== editing); db.remove(editing).catch(fail);
-  closeForm(); render(); toast(t('Session supprimée.'), true);
-};
+function deleteSession(id) {
+  lastDel = S.find(s => s.id === id); if (!lastDel) return;
+  S = S.filter(s => s.id !== id); db.remove(id).catch(fail);
+  render(); toast(t('Session supprimée.'), true);
+}
+$('del').onclick = () => { const id = editing; closeForm(); deleteSession(id); };
+
+// Appui long sur une ligne de la liste : suppression après confirmation.
+let pressT = null, pressRow = null, pressXY = null, pressFired = false;
+const endPress = () => { clearTimeout(pressT); pressT = null; pressRow?.classList.remove('press'); pressRow = null; };
+$('list').addEventListener('pointerdown', e => {
+  const r = e.target.closest('.row'); if (!r || e.button > 0) return;
+  endPress(); pressFired = false; pressRow = r; pressXY = [e.clientX, e.clientY]; r.classList.add('press');
+  pressT = setTimeout(() => { const id = r.dataset.id; endPress(); pressFired = true; navigator.vibrate?.(15); askDelete(id); }, 550);
+});
+$('list').addEventListener('pointermove', e => { if (pressT && Math.hypot(e.clientX - pressXY[0], e.clientY - pressXY[1]) > 10) endPress(); });
+['pointerup', 'pointercancel', 'pointerleave'].forEach(ev => $('list').addEventListener(ev, endPress));
+$('list').addEventListener('contextmenu', e => { if (e.target.closest('.row')) e.preventDefault(); });
+$('list').addEventListener('click', e => { if (pressFired) { pressFired = false; e.stopImmediatePropagation(); e.preventDefault(); } }, true);
+let delId = null;
+function askDelete(id) {
+  const s = S.find(x => x.id === id); if (!s) return;
+  delId = id;
+  $('dld').textContent = [s.lieu || t('Session'), s.date ? fmtD(s.date) : '', eur(s.cashout - s.buyin, true)].filter(Boolean).join(' · ');
+  $('dls').classList.add('on');
+}
+$('dlx').onclick = () => $('dls').classList.remove('on');
+$('dlok').onclick = () => { $('dls').classList.remove('on'); if (delId) deleteSession(delId); delId = null; };
 $('undo').onclick = () => { if (lastDel) { S = S.concat(lastDel); persistOne(lastDel); lastDel = null; render(); } $('toast').classList.remove('on'); };
 
 /* ---------- Fenêtres : fermeture ---------- */
-const sheets = ['sh', 'bks', 'shs'];
+const sheets = ['sh', 'bks', 'shs', 'dls'];
 sheets.forEach(id => $(id).addEventListener('click', e => { if (e.target.id === id) id === 'sh' ? closeForm() : $(id).classList.remove('on'); }));
-document.addEventListener('keydown', e => { if (e.key === 'Escape') { if ($('sh').classList.contains('on')) closeForm(); ['bks', 'shs', 'pfs', 'crs', 'hds', 'phs'].forEach(id => $(id).classList.remove('on')); } });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') { if ($('sh').classList.contains('on')) closeForm(); ['bks', 'shs', 'pfs', 'crs', 'hds', 'phs', 'dls'].forEach(id => $(id).classList.remove('on')); } });
 
 /* ---------- Sauvegarde ---------- */
 $('bk').onclick = () => { $('bktxt').value = JSON.stringify(S, null, 1); $('bkmsg').textContent = ''; $('bks').classList.add('on'); };

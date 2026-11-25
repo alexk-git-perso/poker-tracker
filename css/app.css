@@ -197,3 +197,6 @@ html,body{overscroll-behavior-x:none}
 .phnav{position:absolute;top:50%;transform:translateY(-50%);width:44px;height:44px;border-radius:50%;border:0;background:rgba(0,0,0,.45);color:#fff;font:400 30px/1 system-ui;cursor:pointer}
 .phnav.prev{left:8px}.phnav.next{right:8px}.phnav[hidden]{display:none}
 .viewer .acts .m{color:#bbb;margin-right:auto}
+.list .row{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+.row.press{transform:scale(.98);transition:transform .45s}
+#dld{margin:4px 0 0;color:var(--mute)}
