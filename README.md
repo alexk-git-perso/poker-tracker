@@ -39,7 +39,7 @@ python3 -m http.server 8000
 ## Tests
 
 ```sh
-node --test tests/
+node --test
 ```
 
 ## Mise en ligne
