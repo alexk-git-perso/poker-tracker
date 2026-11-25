@@ -11,9 +11,13 @@ Captures réalisées avec des données fictives, sur un écran de téléphone An
 |:---:|:---:|:---:|
 | <img src="docs/screenshots/1-accueil.png" width="240" alt="Accueil : bénéfice cumulé et dernières sessions"> | <img src="docs/screenshots/2-session-en-direct.png" width="240" alt="Session en direct avec chrono et recaves"> | <img src="docs/screenshots/3-analyse.png" width="240" alt="Analyse : chiffres clés, variance, par mois"> |
 
-| Paramètres | Meilleure main | Partage |
+| Paramètres | Langue et À propos | Meilleure main |
 |:---:|:---:|:---:|
-| <img src="docs/screenshots/4-parametres.png" width="240" alt="Paramètres : photo, main préférée, nom, couleur"> | <img src="docs/screenshots/5-meilleure-main.png" width="240" alt="Sélecteur de cartes"> | <img src="docs/screenshots/6-partage.png" width="240" alt="Choix de l'image à partager"> |
+| <img src="docs/screenshots/4-parametres.png" width="240" alt="Paramètres : photo, main préférée, nom, couleur"> | <img src="docs/screenshots/4b-langue-a-propos.png" width="240" alt="Paramètres : langue et section À propos"> | <img src="docs/screenshots/5-meilleure-main.png" width="240" alt="Sélecteur de cartes"> |
+
+| Partage |
+|:---:|
+| <img src="docs/screenshots/6-partage.png" width="240" alt="Choix de l'image à partager"> |
 
 Images à partager (version détaillée et version photo) :
 
