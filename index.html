@@ -83,7 +83,6 @@
 
   <details><summary>Comment c’est calculé</summary>
   <p>Bénéfice = cash-out − buy-in (recaves comprises). Bénéfice horaire = bénéfice ÷ heures jouées, sur les sessions avec une durée. ROI tournoi = bénéfice des tournois ÷ total des buy-ins de tournoi. Places payées = tournois terminés avec un cash-out.</p></details>
-  <p class="ver" id="ver"></p>
 </main>
 
 <button class="fab" id="add">+ Session</button>
@@ -147,7 +146,16 @@
   <p class="lbl">Couleur</p>
   <div class="sw" id="pfthemes" role="radiogroup" aria-label="Couleur"></div>
   <p class="note" style="margin-top:14px">Le nom, la photo et la couleur apparaissent aussi sur les images que vous partagez. Tout reste sur cet appareil.</p>
-  <div class="acts"><span class="note sp" id="pfver" style="margin:0"></span><button class="btn pri" id="pfclose">Terminé</button></div>
+  <p class="lbl">Langue</p>
+  <div class="sw" id="pflang" role="radiogroup" aria-label="Langue">
+    <button role="radio" data-l="auto">Automatique (langue du téléphone)</button><button role="radio" data-l="fr" lang="fr">Français</button><button role="radio" data-l="en" lang="en">English</button>
+  </div>
+  <div class="about">
+    <h4>À propos</h4>
+    <p class="note">Suivi de parties de poker. Vos données restent sur cet appareil.</p>
+    <p class="note"><span id="pfver"></span> · <a href="https://github.com/alexk-git-perso/poker-tracker" target="_blank" rel="noopener">Code source</a></p>
+  </div>
+  <div class="acts"><button class="btn pri" id="pfclose">Terminé</button></div>
 </div></div>
 
 <div class="sheet" id="crs" role="dialog" aria-modal="true" aria-labelledby="crt"><div class="panel">

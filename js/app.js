@@ -1,40 +1,42 @@
 import * as db from './db.js';
 import { summary, byGroup, byMonth, variance, cumulative, sortByDate, profitOf } from './stats.js';
-import { esc, eur, fmtD, fmtM, today, uid } from './format.js';
+import { esc, eur, fmtD, fmtM, today, uid, num, pct } from './format.js';
 import { card, shareImage, canShareFiles, download } from './share.js';
 import { THEMES, applyTheme, initials, sourceFromFile, defaultCrop, clampCrop, drawCrop, cropToPhoto, loadImage } from './profile.js';
 import { liveTotals, finishLive, clock } from './live.js';
 import { RANKS, SUITS, suitOf, rankLabel, isCard, handName, cardHTML } from './cards.js';
+import { t, tn, ord, lang, pref, setPref, translateDOM } from './i18n.js';
 
 const $ = id => document.getElementById(id);
 const APP_VERSION = self.APP_VERSION || '?';
 let P = {}, LIVE = null, S = [], filter = 'all', editing = null, ftype = 'cash', lastDel = null, tt, shot = null, stored = true;
 const data = () => S;
 const view = () => sortByDate(data().filter(s => filter === 'all' || s.type === filter));
-const label = () => (filter === 'cash' ? 'Bilan cash game' : filter === 'tournoi' ? 'Bilan tournois' : 'Mon bilan poker');
+const label = () => t(filter === 'cash' ? 'Bilan cash game' : filter === 'tournoi' ? 'Bilan tournois' : 'Mon bilan poker');
+const kindLabel = () => (filter === 'cash' ? t('Cash game') : filter === 'tournoi' ? t('Tournois') : '');
 const cls = v => (v == null ? '' : v >= 0 ? 'pos' : 'neg');
 
 /* ---------- Rendu ---------- */
 function render() {
   const L = view(), k = summary(L), all = data();
   $('tot').textContent = eur(k.profit, true);
-  $('sub').textContent = k.n ? `sur ${k.n} session${k.n > 1 ? 's' : ''}${k.h ? ' · ' + k.h.toLocaleString('fr-FR') + ' h jouées' : ''}` : 'aucune session';
+  $('sub').textContent = k.n ? tn(k.n, 'sur {n} session', 'sur {n} sessions') + (k.h ? ' · ' + t('{h} h jouées', { h: num(k.h) }) : '') : t('aucune session');
 
   const cards = [
-    ['Bénéfice horaire', k.hourly == null ? '—' : eur(k.hourly, true) + '/h', k.hourly],
-    ['Sessions gagnantes', k.win == null ? '—' : Math.round(k.win * 100) + ' %', null],
-    ['Plus gros gain', k.n ? eur(k.best, true) : '—', k.n ? k.best : null],
-    ['Plus grosse perte', k.n ? eur(k.worst, true) : '—', k.n ? k.worst : null],
+    [t('Bénéfice horaire'), k.hourly == null ? '—' : eur(k.hourly, true) + '/h', k.hourly],
+    [t('Sessions gagnantes'), k.win == null ? '—' : pct(k.win), null],
+    [t('Plus gros gain'), k.n ? eur(k.best, true) : '—', k.n ? k.best : null],
+    [t('Plus grosse perte'), k.n ? eur(k.worst, true) : '—', k.n ? k.worst : null],
   ];
-  if (filter !== 'cash' && k.nT) cards.push(['ROI tournois', (k.roi > 0 ? '+' : '') + Math.round(k.roi * 100) + ' %', k.roi], ['Places payées', Math.round(k.itm * 100) + ' %', null]);
+  if (filter !== 'cash' && k.nT) cards.push([t('ROI tournois'), pct(k.roi, true), k.roi], [t('Places payées'), pct(k.itm), null]);
   $('stats').innerHTML = cards.map(c => `<div class="st"><small>${c[0]}</small><b class="${cls(c[2])}">${esc(c[1])}</b></div>`).join('');
 
   const rev = L.slice().reverse();
   $('list').innerHTML = rev.length ? rev.map(s => {
-    const p = profitOf(s), t = s.type === 'tournoi';
-    const meta = fmtD(s.date) + (s.duree ? ' · ' + String(s.duree).replace('.', ',') + ' h' : '') + (t && s.place ? ' · ' + s.place + 'e' + (s.joueurs ? '/' + s.joueurs : '') : '') + (s.recaves ? ' · ' + s.recaves + ' recave' + (s.recaves > 1 ? 's' : '') : '');
-    return `<button class="row" data-id="${esc(s.id)}"><span class="chipi ${t ? 't' : ''}">${t ? 'MTT' : 'CG'}</span><span><span class="d">${esc(s.lieu || 'Session')}</span> <span class="m">· ${esc(s.jeu || (t ? 'Tournoi' : 'Cash game'))}</span><br><span class="m">${esc(meta)}</span>${s.hand?.length ? `<span class="cards" title="${esc(handName(s.hand))}">${s.hand.filter(isCard).map(c => cardHTML(c)).join('')}</span>` : ''}</span><span class="p ${cls(p)}">${eur(p, true)}<small>${eur(s.buyin)} → ${eur(s.cashout)}</small></span></button>`;
-  }).join('') : '<div class="empty">Aucune session pour ce filtre. Ajoutez-en une avec « + Session ».</div>';
+    const p = profitOf(s), tt = s.type === 'tournoi';
+    const meta = fmtD(s.date) + (s.duree ? ' · ' + num(s.duree) + ' h' : '') + (tt && s.place ? ' · ' + ord(s.place) + (s.joueurs ? '/' + s.joueurs : '') : '') + (s.recaves ? ' · ' + tn(s.recaves, '{n} recave', '{n} recaves') : '');
+    return `<button class="row" data-id="${esc(s.id)}"><span class="chipi ${tt ? 't' : ''}">${tt ? 'MTT' : 'CG'}</span><span><span class="d">${esc(s.lieu || t('Session'))}</span> <span class="m">· ${esc(s.jeu || (tt ? t('Tournoi') : t('Cash game')))}</span><br><span class="m">${esc(meta)}</span>${s.hand?.length ? `<span class="cards" title="${esc(handName(s.hand))}">${s.hand.filter(isCard).map(c => cardHTML(c)).join('')}</span>` : ''}</span><span class="p ${cls(p)}">${eur(p, true)}<small>${eur(s.buyin)} → ${eur(s.cashout)}</small></span></button>`;
+  }).join('') : `<div class="empty">${t('Aucune session pour ce filtre. Ajoutez-en une avec « + Session ».')}</div>`;
 
   const opts = k2 => [...new Set(all.map(s => s[k2]).filter(Boolean))].map(v => `<option value="${esc(v)}">`).join('');
   $('lieux').innerHTML = opts('lieu'); $('jeux').innerHTML = opts('jeu');
@@ -44,30 +46,30 @@ function render() {
 
 function renderAnalyse(L) {
   const v = variance(L);
-  const ddTxt = v.downswing && v.ddFrom != null ? `sur ${v.ddTo - v.ddFrom + 1} session${v.ddTo > v.ddFrom ? 's' : ''}` : '';
+  const ddTxt = v.downswing && v.ddFrom != null ? tn(v.ddTo - v.ddFrom + 1, 'sur {n} session', 'sur {n} sessions') : '';
   $('var').innerHTML = [
-    ['Écart-type par session', v.sd == null ? '—' : '± ' + eur(v.sd), ''],
-    ['Pire downswing', v.downswing ? eur(-v.downswing) : '0 €', ddTxt],
-    ['Plus longue série perdante', v.streak + ' session' + (v.streak > 1 ? 's' : ''), ''],
+    [t('Écart-type par session'), v.sd == null ? '—' : '± ' + eur(v.sd), ''],
+    [t('Pire downswing'), eur(-v.downswing), ddTxt],
+    [t('Plus longue série perdante'), tn(v.streak, '{n} session', '{n} sessions'), ''],
   ].map(c => `<div class="st"><small>${c[0]}</small><b>${esc(c[1])}</b>${c[2] ? `<small>${esc(c[2])}</small>` : ''}</div>`).join('');
 
   const M = byMonth(L).slice(-12), mx = Math.max(1, ...M.map(m => Math.abs(m.profit)));
   $('months').innerHTML = M.length ? M.map(m => {
     const w = Math.abs(m.profit) / mx * 50, pos = m.profit >= 0;
     return `<span>${esc(fmtM(m.month))}</span><span class="bw"><i style="${pos ? 'left:50%' : 'right:50%'};width:${w}%;background:var(${pos ? '--gain' : '--loss'})"></i></span><b class="${m.n ? cls(m.profit) : ''}">${m.n ? eur(m.profit, true) : '—'}</b>`;
-  }).join('') : '<span class="note">Pas encore de données.</span>';
+  }).join('') : `<span class="note">${t('Pas encore de données.')}</span>`;
 
-  const table = rows => rows.length ? `<table><thead><tr><th></th><th>Sessions</th><th>Bénéfice</th><th>€/h</th></tr></thead><tbody>${rows.map(r =>
+  const table = rows => rows.length ? `<table><thead><tr><th></th><th>${t('Sessions')}</th><th>${t('Bénéfice')}</th><th>€/h</th></tr></thead><tbody>${rows.map(r =>
     `<tr><td>${esc(r.name)}</td><td>${r.n}</td><td class="${cls(r.profit)}">${eur(r.profit, true)}</td><td>${r.hourly == null ? '—' : esc(eur(r.hourly, true))}</td></tr>`).join('')}</tbody></table>` : '<p class="note">Pas encore de données.</p>';
-  $('bylieu').innerHTML = table(byGroup(L, 'lieu'));
-  $('byjeu').innerHTML = table(byGroup(L, 'jeu'));
+  $('bylieu').innerHTML = table(byGroup(L, 'lieu', t('Non renseigné')));
+  $('byjeu').innerHTML = table(byGroup(L, 'jeu', t('Non renseigné')));
 }
 
 const svg = $('svg');
 function draw() {
   const L = view(), W = svg.clientWidth, H = svg.clientHeight;
   if (!W || !H) return;
-  if (!L.length) { svg.innerHTML = `<text x="${W / 2}" y="${H / 2}" text-anchor="middle">La courbe apparaîtra après votre première session</text>`; return; }
+  if (!L.length) { svg.innerHTML = `<text x="${W / 2}" y="${H / 2}" text-anchor="middle">${esc(t('La courbe apparaîtra après votre première session'))}</text>`; return; }
   const pts = cumulative(L);
   const ml = W < 520 ? 6 : 56, mr = W < 520 ? 70 : 90, mt = 24, mb = 26;
   const vs = pts.map(p => p.v), lo = Math.min(0, ...vs), hi = Math.max(0, ...vs), span = hi - lo || 1;
@@ -89,7 +91,7 @@ function draw() {
 new ResizeObserver(draw).observe(svg);
 
 /* ---------- Stockage ---------- */
-const fail = () => { stored = false; $('sync').textContent = 'Attention : ce navigateur bloque le stockage local. Vos sessions seront perdues en fermant l’appli : faites une sauvegarde.'; };
+const fail = () => { stored = false; $('sync').textContent = t('Attention : ce navigateur bloque le stockage local. Vos sessions seront perdues en fermant l’appli : faites une sauvegarde.'); };
 const persistOne = s => db.put(s).catch(fail);
 const persistAll = () => db.replaceAll(S).catch(fail);
 
@@ -120,12 +122,12 @@ function live() {
   const el = $('live');
   if (!$('f-buyin').value && !$('f-cashout').value) { el.textContent = ''; return; }
   const p = (+$('f-cashout').value || 0) - (+$('f-buyin').value || 0);
-  el.textContent = 'Résultat : ' + eur(p, true); el.className = 'live ' + cls(p);
+  el.textContent = t('Résultat : {p}', { p: eur(p, true) }); el.className = 'live ' + cls(p);
 }
 ['f-buyin', 'f-cashout'].forEach(i => $(i).oninput = live);
 function openForm(s) {
   editing = s ? s.id : null;
-  $('ft').textContent = editing ? 'Modifier la session' : 'Nouvelle session';
+  $('ft').textContent = t(editing ? 'Modifier la session' : 'Nouvelle session');
   $('del').hidden = $('shareOne').hidden = !editing;
   $('golive').hidden = $('golivehint').hidden = !!editing || !!LIVE;
   const last = sortByDate(S).pop();
@@ -159,7 +161,7 @@ $('frm').onsubmit = e => {
   if (filter !== 'all' && filter !== o.type) document.querySelector('#flt [data-f=all]').click(); else render();
   const row = [...document.querySelectorAll('.row')].find(r => r.dataset.id === o.id);
   if (row) { row.classList.add('new'); row.scrollIntoView({ block: 'center', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' }); setTimeout(() => row.classList.remove('new'), 2000); }
-  toast(editing ? 'Session modifiée.' : 'Session ajoutée.');
+  toast(t(editing ? 'Session modifiée.' : 'Session ajoutée.'));
   if (S.length === 1) db.persist();
 };
 function toast(m, undo) {
@@ -169,7 +171,7 @@ function toast(m, undo) {
 $('del').onclick = () => {
   lastDel = S.find(s => s.id === editing);
   S = S.filter(s => s.id !== editing); db.remove(editing).catch(fail);
-  closeForm(); render(); toast('Session supprimée.', true);
+  closeForm(); render(); toast(t('Session supprimée.'), true);
 };
 $('undo').onclick = () => { if (lastDel) { S = S.concat(lastDel); persistOne(lastDel); lastDel = null; render(); } $('toast').classList.remove('on'); };
 
@@ -181,12 +183,12 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') { if ($('sh'
 /* ---------- Sauvegarde ---------- */
 $('bk').onclick = () => { $('bktxt').value = JSON.stringify(S, null, 1); $('bkmsg').textContent = ''; $('bks').classList.add('on'); };
 $('bkclose').onclick = () => $('bks').classList.remove('on');
-$('bksave').onclick = () => { download(new Blob([JSON.stringify(S, null, 1)], { type: 'application/json' }), 'poker-sauvegarde-' + today() + '.json'); $('bkmsg').textContent = 'Fichier téléchargé.'; };
+$('bksave').onclick = () => { download(new Blob([JSON.stringify(S, null, 1)], { type: 'application/json' }), 'poker-sauvegarde-' + today() + '.json'); $('bkmsg').textContent = t('Fichier téléchargé.'); };
 $('bkcopy').onclick = async () => {
-  try { await navigator.clipboard.writeText($('bktxt').value); $('bkmsg').textContent = 'Copié.'; }
-  catch (e) { $('bktxt').select(); $('bkmsg').textContent = 'Sélectionné : copiez avec Ctrl+C ou un appui long.'; }
+  try { await navigator.clipboard.writeText($('bktxt').value); $('bkmsg').textContent = t('Copié.'); }
+  catch (e) { $('bktxt').select(); $('bkmsg').textContent = t('Sélectionné : copiez avec Ctrl+C ou un appui long.'); }
 };
-$('bkfile').onchange = async () => { const f = $('bkfile').files[0]; if (f) { $('bktxt').value = await f.text(); $('bkmsg').textContent = 'Fichier chargé : appuyez sur Importer.'; } };
+$('bkfile').onchange = async () => { const f = $('bkfile').files[0]; if (f) { $('bktxt').value = await f.text(); $('bkmsg').textContent = t('Fichier chargé : appuyez sur Importer.'); } };
 const clean = s => ({
   id: String(s.id || uid()), type: s.type === 'tournoi' ? 'tournoi' : 'cash', date: String(s.date).slice(0, 10),
   lieu: String(s.lieu || ''), jeu: String(s.jeu || ''), buyin: +s.buyin, cashout: +s.cashout,
@@ -196,8 +198,8 @@ $('bkimp').onclick = () => {
   try {
     const a = JSON.parse($('bktxt').value); if (!Array.isArray(a)) throw 0;
     S = a.filter(s => s && /^\d{4}-\d{2}-\d{2}/.test(s.date) && isFinite(s.buyin) && isFinite(s.cashout)).map(clean);
-    persistAll(); render(); $('bkmsg').textContent = S.length + ' sessions importées.';
-  } catch (e) { $('bkmsg').textContent = 'Ce texte n’est pas une sauvegarde valide.'; }
+    persistAll(); render(); $('bkmsg').textContent = tn(S.length, '{n} session importée.', '{n} sessions importées.');
+  } catch (e) { $('bkmsg').textContent = t('Ce texte n’est pas une sauvegarde valide.'); }
 };
 
 /* ---------- Partage en image ---------- */
@@ -210,17 +212,17 @@ function pick(st) {
 }
 $('shpick').onclick = e => { const b = e.target.closest('[data-st]'); if (b && shots[b.dataset.st]) pick(b.dataset.st); };
 async function share(kind, s) {
-  const payload = kind === 'one' ? s : { list: view(), label: label() };
+  const payload = kind === 'one' ? s : { list: view(), label: label(), kindLabel: kindLabel() };
   const [d, p] = await Promise.all([card(kind, payload, P, 'detail'), card(kind, payload, P, 'poster')]);
-  if (!d || !p) { toast('Image impossible à créer sur cet appareil.'); return; }
+  if (!d || !p) { toast(t('Image impossible à créer sur cet appareil.')); return; }
   const base = kind === 'one' ? 'poker-' + s.date : 'poker-bilan-' + today();
   shots = { detail: { blob: d, name: base + '.png' }, poster: { blob: p, name: base + '-photo.png' } };
   document.querySelectorAll('#shpick [data-st]').forEach(b => { const im = b.querySelector('img'); if (im.src) URL.revokeObjectURL(im.src); im.src = URL.createObjectURL(shots[b.dataset.st].blob); });
   pick(pickSt);
   const native = canShareFiles(d);
-  $('shgot').textContent = native ? 'Partager' : 'Télécharger';
+  $('shgot').textContent = t(native ? 'Partager' : 'Télécharger');
   $('shcopy').hidden = !(window.ClipboardItem && navigator.clipboard?.write);
-  $('shmsg').textContent = native ? 'Envoyez-la directement à vos amis (WhatsApp, Messages…).' : 'Téléchargez l’image, puis envoyez-la à vos amis.';
+  $('shmsg').textContent = t(native ? 'Envoyez-la directement à vos amis (WhatsApp, Messages…).' : 'Téléchargez l’image, puis envoyez-la à vos amis.');
   $('shs').classList.add('on');
 }
 $('shareOne').onclick = () => { const s = S.find(q => q.id === editing); if (s) { closeForm(); share('one', s); } };
@@ -228,11 +230,11 @@ $('shareAll').onclick = () => share('all');
 $('shclose').onclick = () => $('shs').classList.remove('on');
 $('shgo').onclick = async () => {
   const r = await shareImage(shot.blob, shot.name);
-  $('shmsg').textContent = r === 'shared' ? 'Partagé.' : r === 'cancelled' ? 'Partage annulé.' : 'Image téléchargée.';
+  $('shmsg').textContent = t(r === 'shared' ? 'Partagé.' : r === 'cancelled' ? 'Partage annulé.' : 'Image téléchargée.');
 };
 $('shcopy').onclick = async () => {
-  try { await navigator.clipboard.write([new ClipboardItem({ 'image/png': shot.blob })]); $('shmsg').textContent = 'Image copiée : collez-la dans votre messagerie.'; }
-  catch (e) { $('shmsg').textContent = 'Copie refusée par ce navigateur : utilisez Partager.'; }
+  try { await navigator.clipboard.write([new ClipboardItem({ 'image/png': shot.blob })]); $('shmsg').textContent = t('Image copiée : collez-la dans votre messagerie.'); }
+  catch (e) { $('shmsg').textContent = t('Copie refusée par ce navigateur : utilisez Partager.'); }
 };
 
 /* ---------- Paramètres du joueur ---------- */
@@ -249,20 +251,20 @@ function renderProfile() {
   $('pname').textContent = P.name || '';
   $('pname').hidden = !P.name;
   $('pfnophoto').hidden = $('pfcrop').hidden = !P.photo;
-  $('pffav').innerHTML = handBtnHTML((P.fav || []).filter(isCard), 'Choisir 2 cartes');
-  $('pfthemes').innerHTML = Object.entries(THEMES).map(([k, t]) =>
-    `<button role="radio" data-k="${k}" aria-checked="${(P.theme || 'vert') === k}" style="--a:${t.accent}"><i style="background:linear-gradient(135deg,${t.felt2},${t.felt})"></i>${esc(t.name)}</button>`).join('');
+  $('pffav').innerHTML = handBtnHTML((P.fav || []).filter(isCard), t('Choisir 2 cartes'));
+  $('pfthemes').innerHTML = Object.entries(THEMES).map(([k, th]) =>
+    `<button role="radio" data-k="${k}" aria-checked="${(P.theme || 'vert') === k}" style="--a:${th.accent}"><i style="background:linear-gradient(135deg,${th.felt2},${th.felt})"></i>${esc(t(th.name))}</button>`).join('');
   draw();
 }
-const saveProfile = () => { db.setProfile(P).catch(() => toast('Paramètres non enregistrés sur cet appareil.')); renderProfile(); };
-$('prof').onclick = () => { $('pfname').value = P.name || ''; $('pfver').textContent = 'Version ' + APP_VERSION; $('pfs').classList.add('on'); };
+const saveProfile = () => { db.setProfile(P).catch(() => toast(t('Paramètres non enregistrés sur cet appareil.'))); renderProfile(); };
+$('prof').onclick = () => { $('pfname').value = P.name || ''; $('pfver').textContent = t('Version {v}', { v: APP_VERSION }); $('pfs').classList.add('on'); };
 $('pfclose').onclick = () => $('pfs').classList.remove('on');
 $('pfs').addEventListener('click', e => { if (e.target.id === 'pfs') $('pfs').classList.remove('on'); });
 $('pfname').onchange = () => { P = { ...P, name: $('pfname').value.trim() }; saveProfile(); };
 $('pfname').oninput = () => { $('pname').textContent = $('pfname').value.trim(); $('pname').hidden = !$('pfname').value.trim(); };
 $('pfphoto').onchange = async () => {
   const f = $('pfphoto').files[0]; if (!f) return;
-  try { const src = await sourceFromFile(f); await openCrop(src, null); } catch (e) { toast('Cette image n’a pas pu être lue.'); }
+  try { const src = await sourceFromFile(f); await openCrop(src, null); } catch (e) { toast(t('Cette image n’a pas pu être lue.')); }
   $('pfphoto').value = '';
 };
 $('pfnophoto').onclick = () => { const { photo, photoSrc, crop, ...rest } = P; P = rest; saveProfile(); };
@@ -282,7 +284,7 @@ async function openCrop(src, crop) {
   CR = { img, src, c: clampCrop(img, crop || defaultCrop(img)) };
   $('crs').classList.add('on'); requestAnimationFrame(crDraw);
 }
-$('pfcrop').onclick = () => openCrop(P.photoSrc || P.photo, P.photoSrc ? P.crop : null).catch(() => toast('Cette image n’a pas pu être lue.'));
+$('pfcrop').onclick = () => openCrop(P.photoSrc || P.photo, P.photoSrc ? P.crop : null).catch(() => toast(t('Cette image n’a pas pu être lue.')));
 $('crz').oninput = () => { if (CR) { CR.c = clampCrop(CR.img, { ...CR.c, zoom: +$('crz').value }); crDraw(); } };
 $('crx').onclick = () => { CR = null; $('crs').classList.remove('on'); };
 $('crok').onclick = () => {
@@ -307,16 +309,16 @@ $('pfthemes').onclick = e => { const b = e.target.closest('[data-k]'); if (b) { 
 
 /* ---------- Session en direct ---------- */
 let tick = null;
-const saveLive = () => (LIVE ? db.setLive(LIVE) : db.clearLive()).catch(() => toast('Session en cours non enregistrée sur cet appareil.'));
+const saveLive = () => (LIVE ? db.setLive(LIVE) : db.clearLive()).catch(() => toast(t('Session en cours non enregistrée sur cet appareil.')));
 function renderLive() {
   $('lv').hidden = !LIVE;
   clearInterval(tick); tick = null;
   if (!LIVE) return;
-  const t = liveTotals(LIVE);
-  $('lv-where').textContent = [LIVE.type === 'tournoi' ? 'Tournoi' : 'Cash game', LIVE.lieu, LIVE.jeu].filter(Boolean).join(' · ');
-  $('lv-in').textContent = eur(t.buyin);
-  $('lv-n').textContent = String(t.recaves);
-  $('lv-undo').hidden = !t.recaves;
+  const lt = liveTotals(LIVE);
+  $('lv-where').textContent = [t(LIVE.type === 'tournoi' ? 'Tournoi' : 'Cash game'), LIVE.lieu, LIVE.jeu].filter(Boolean).join(' · ');
+  $('lv-in').textContent = eur(lt.buyin);
+  $('lv-n').textContent = String(lt.recaves);
+  $('lv-undo').hidden = !lt.recaves;
   $('lv-tsec').hidden = LIVE.type !== 'tournoi';
   const upd = () => { $('lv-time').textContent = clock(liveTotals(LIVE).ms); liveResult(); };
   upd(); tick = setInterval(upd, 15000);
@@ -331,20 +333,20 @@ function liveResult() {
 const lvShow = which => { $('lv-main').hidden = which !== 'main'; $('lv-fr').hidden = which !== 'rebuy'; $('lv-fe').hidden = which !== 'end'; };
 $('golive').onclick = () => {
   const amt = +$('f-buyin').value;
-  if (!(amt > 0)) { $('f-buyin').focus(); $('f-buyin').reportValidity?.(); toast('Indiquez le buy-in de départ.'); return; }
+  if (!(amt > 0)) { $('f-buyin').focus(); $('f-buyin').reportValidity?.(); toast(t('Indiquez le buy-in de départ.')); return; }
   const now = Date.now();
   LIVE = { id: uid(), type: ftype, lieu: $('f-lieu').value.trim(), jeu: $('f-jeu').value.trim(), notes: $('f-notes').value.trim(), start: now, buyins: [{ amount: amt, at: now }] };
   saveLive(); closeForm(); lvShow('main'); renderLive(); scrollTo({ top: 0 });
-  toast('Session démarrée. Bonne partie !');
+  toast(t('Session démarrée. Bonne partie !'));
 };
 $('lv-rebuy').onclick = () => { const last = LIVE.buyins[LIVE.buyins.length - 1]; $('lv-amt').value = last ? last.amount : ''; lvShow('rebuy'); };
 $('lv-frx').onclick = () => lvShow('main');
 $('lv-fr').onsubmit = e => {
   e.preventDefault(); const a = +$('lv-amt').value; if (!(a > 0)) return;
   LIVE.buyins.push({ amount: a, at: Date.now() }); saveLive(); lvShow('main'); renderLive();
-  toast('Recave de ' + eur(a) + ' ajoutée.');
+  toast(t('Recave de {a} ajoutée.', { a: eur(a) }));
 };
-$('lv-undo').onclick = () => { if (LIVE.buyins.length > 1) { const r = LIVE.buyins.pop(); saveLive(); renderLive(); toast('Recave de ' + eur(r.amount) + ' retirée.'); } };
+$('lv-undo').onclick = () => { if (LIVE.buyins.length > 1) { const r = LIVE.buyins.pop(); saveLive(); renderLive(); toast(t('Recave de {a} retirée.', { a: eur(r.amount) })); } };
 $('lv-end').onclick = () => { $('lv-out').value = ''; $('lv-place').value = ''; $('lv-joueurs').value = ''; lvShow('end'); liveResult(); };
 $('lv-out').oninput = liveResult;
 $('lv-fex').onclick = () => lvShow('main');
@@ -354,13 +356,13 @@ $('lv-fe').onsubmit = e => {
   const s = finishLive(LIVE, +$('lv-out').value || 0, Date.now(), { place: num('lv-place'), joueurs: num('lv-joueurs') });
   S = S.concat(s); persistOne(s); LIVE = null; saveLive(); lvShow('main'); renderLive();
   showTab('tab-sessions'); if (filter !== 'all' && filter !== s.type) document.querySelector('#flt [data-f=all]').click(); else render();
-  toast('Session enregistrée : ' + eur(profitOf(s), true) + '.');
+  toast(t('Session enregistrée : {p}.', { p: eur(profitOf(s), true) }));
 };
 let dropArmed = false;
 $('lv-drop').onclick = () => {
-  if (!dropArmed) { dropArmed = true; $('lv-drop').textContent = 'Confirmer l’abandon'; setTimeout(() => { dropArmed = false; $('lv-drop').textContent = 'Abandonner la session'; }, 4000); return; }
-  dropArmed = false; $('lv-drop').textContent = 'Abandonner la session';
-  LIVE = null; saveLive(); lvShow('main'); renderLive(); toast('Session en cours abandonnée.');
+  if (!dropArmed) { dropArmed = true; $('lv-drop').textContent = t('Confirmer l’abandon'); setTimeout(() => { dropArmed = false; $('lv-drop').textContent = t('Abandonner la session'); }, 4000); return; }
+  dropArmed = false; $('lv-drop').textContent = t('Abandonner la session');
+  LIVE = null; saveLive(); lvShow('main'); renderLive(); toast(t('Session en cours abandonnée.'));
 };
 document.addEventListener('visibilitychange', () => { if (!document.hidden && LIVE) renderLive(); });
 
@@ -368,7 +370,7 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden && LI
 let formHand = [], pickHand = [], pickSuit = 's', pickMax = 5, onPicked = null;
 const handBtnHTML = (H, empty) => H.length ? `<span class="cards">${H.map(c => cardHTML(c)).join('')}</span>${handName(H) ? `<span>${esc(handName(H))}</span>` : ''}` : `<span>${empty}</span>`;
 function renderHandBtn() {
-  $('f-hand').innerHTML = handBtnHTML(formHand, 'Choisir les cartes');
+  $('f-hand').innerHTML = handBtnHTML(formHand, t('Choisir les cartes'));
 }
 function renderPicker() {
   $('hdslots').style.gridTemplateColumns = `repeat(${pickMax},minmax(0,1fr))`;
@@ -377,13 +379,13 @@ function renderPicker() {
     ? cardHTML(pickHand[i]).replace('<span class="pc', `<span role="button" tabindex="0" data-i="${i}" class="pc`)
     : '<span class="empty-slot" aria-hidden="true"></span>').join('');
   $('hdname').textContent = handName(pickHand);
-  $('hdsuits').innerHTML = SUITS.map(s => `<button role="radio" data-s="${s.k}" class="${s.red ? 'red' : ''}" aria-checked="${s.k === pickSuit}" aria-label="${s.name}">${s.sym}</button>`).join('');
+  $('hdsuits').innerHTML = SUITS.map(s => `<button role="radio" data-s="${s.k}" class="${s.red ? 'red' : ''}" aria-checked="${s.k === pickSuit}" aria-label="${t(s.name)}">${s.sym}</button>`).join('');
   const full = pickHand.length >= pickMax, red = suitOf('A' + pickSuit).red;
   $('hdranks').innerHTML = RANKS.map(r => `<button data-r="${r}" class="${red ? 'red' : ''}" ${full || pickHand.includes(r + pickSuit) ? 'disabled' : ''}>${rankLabel(r)}</button>`).join('');
 }
 function openPicker(title, cards, max, done) {
-  $('hdt').textContent = title; pickMax = max; pickHand = cards.slice(0, max); onPicked = done;
-  $('hdhelp').textContent = `Choisissez la couleur, puis touchez les valeurs. ${max} cartes au plus ; touchez une carte en haut pour la retirer.`;
+  $('hdt').textContent = t(title); pickMax = max; pickHand = cards.slice(0, max); onPicked = done;
+  $('hdhelp').textContent = t('Choisissez la couleur, puis touchez les valeurs. {n} cartes au plus ; touchez une carte en haut pour la retirer.', { n: max });
   renderPicker(); $('hds').classList.add('on');
 }
 $('f-hand').onclick = () => openPicker('Meilleure main', formHand, 5, H => { formHand = H; renderHandBtn(); });
@@ -455,13 +457,24 @@ addEventListener('popstate', () => {
   setTimeout(() => { fromPop = false; if (anyOpen()) history.pushState({ modal: 1 }, ''); });
 });
 
+/* ---------- Langue ---------- */
+function renderLang() {
+  document.querySelectorAll('#pflang [data-l]').forEach(b => b.setAttribute('aria-checked', b.dataset.l === pref()));
+}
+$('pflang').onclick = e => {
+  const b = e.target.closest('[data-l]'); if (!b) return;
+  setPref(b.dataset.l); renderLang(); renderProfile(); render(); renderLive(); renderHandBtn();
+  $('pfver').textContent = t('Version {v}', { v: APP_VERSION });
+  $('golivehint') && translateDOM();
+};
+
 /* ---------- Installation ---------- */
 let deferred = null;
 const standalone = matchMedia('(display-mode: standalone)').matches || navigator.standalone;
 addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferred = e; $('instbtn').hidden = false; $('inst').classList.add('on'); });
 $('instbtn').onclick = async () => { if (!deferred) return; deferred.prompt(); await deferred.userChoice; deferred = null; $('inst').classList.remove('on'); };
 if (!standalone && /iphone|ipad|ipod/i.test(navigator.userAgent)) {
-  $('instmsg').textContent = 'Pour l’installer : touchez Partager, puis « Sur l’écran d’accueil ».';
+  $('instmsg').textContent = t('Pour l’installer : touchez Partager, puis « Sur l’écran d’accueil ».');
   $('instbtn').hidden = true; $('inst').classList.add('on');
 }
 if ('serviceWorker' in navigator) {
@@ -476,7 +489,8 @@ if ('serviceWorker' in navigator) {
 function LIVE_EDITING() { return [...document.querySelectorAll('.sheet.on')].length > 0 || !$('lv-fr').hidden || !$('lv-fe').hidden; }
 
 /* ---------- Démarrage ---------- */
-$('ver').textContent = 'Version ' + APP_VERSION;
+translateDOM();
+renderLang();
 renderProfile();
 render();
 db.getLive().then(l => { LIVE = l || null; renderLive(); }).catch(() => {});

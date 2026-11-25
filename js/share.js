@@ -1,6 +1,9 @@
 // Carte 1080×1350 dessinée sur un canvas, puis partage natif (WhatsApp, Messages…) ou téléchargement.
 import { summary, cumulative, profitOf } from './stats.js';
-import { eur, fmtD } from './format.js';
+import { eur, fmtD, num, pct } from './format.js';
+import { t, tn, ord } from './i18n.js';
+const tr = t; // « t » sert aussi de variable locale (tournoi)
+const placeTxt = s => s.joueurs ? tr('{p} sur {n}', { p: ord(s.place), n: s.joueurs }) : ord(s.place);
 import { theme, initials, loadImage } from './profile.js';
 import { isCard, handName, drawCard } from './cards.js';
 
@@ -42,8 +45,8 @@ export async function card(kind, payload, P = {}, style = 'detail') {
   } else { chip(930, 180, 70, th.accent); chip(860, 250, 46, '#1f3a8a'); }
   if (kind === 'one') {
     const s = payload, p = profitOf(s), t = s.type === 'tournoi';
-    T(t ? 'Tournoi' : 'Cash game', 100, 170, '600 38px Inter', '#e6c36a');
-    const title = s.lieu || 'Session de poker';
+    T(t ? tr('Tournoi') : tr('Cash game'), 100, 170, '600 38px Inter', '#e6c36a');
+    const title = s.lieu || t('Session de poker');
     T(title, 100, 240, fit(title, '700 SZpx Rubik', 64, 580), '#f3efe4');
     T((s.jeu ? s.jeu + ' · ' : '') + fmtD(s.date), 100, 300, '500 34px Inter', '#cfe3d7');
     if (s.duree) T(dur(s), 100, 350, '500 30px Inter', 'rgba(207,227,215,.75)');
@@ -52,15 +55,15 @@ export async function card(kind, payload, P = {}, style = 'detail') {
     if (hand.length) {
       hand.forEach((c, i) => drawCard(x, c, 100 + i * 100, 640, 88));
       const hn = handName(hand), hx = 100 + hand.length * 100 + 14;
-      if (hn) { T('Meilleure main', hx, 690, '500 28px Inter', '#cfe3d7'); T(hn, hx, 735, fit(hn, '700 SZpx Rubik', 38, 980 - hx), '#f3efe4'); }
+      if (hn) { T(tr('Meilleure main'), hx, 690, '500 28px Inter', '#cfe3d7'); T(hn, hx, 735, fit(hn, '700 SZpx Rubik', 38, 980 - hx), '#f3efe4'); }
     }
-    const rows = [['Buy-in', eur(s.buyin)], ['Cash-out', eur(s.cashout)]];
-    if (s.recaves) rows.push(['Recaves', String(s.recaves)]);
-    if (t && s.place) rows.push(['Place', s.place + 'e' + (s.joueurs ? ' sur ' + s.joueurs : '')]);
+    const rows = [[tr('Buy-in'), eur(s.buyin)], [tr('Cash-out'), eur(s.cashout)]];
+    if (s.recaves) rows.push([tr('Recaves'), String(s.recaves)]);
+    if (t && s.place) rows.push([tr('Place'), placeTxt(s)]);
     rowsAt(rows, hand.length ? 850 : 800, hand.length ? 105 : 125, true);
   } else {
-    const { list: L, label } = payload, k = summary(L);
-    const head = name ? 'Bilan de ' + name + (label.startsWith('Bilan ') ? ' · ' + label.slice(6) : '') : label;
+    const { list: L, label } = payload, k = summary(L), sub2 = payload.kindLabel;
+    const head = name ? tr('Bilan de {name}', { name }) + (sub2 ? ' · ' + sub2 : '') : label;
     T(head, 100, 170, fit(head, '600 SZpx Inter', 38, 600), '#e6c36a');
     if (L.length) T(fmtD(L[0].date) + ' → ' + fmtD(L[L.length - 1].date), 100, 230, fit(fmtD(L[0].date) + ' → ' + fmtD(L[L.length - 1].date), '500 SZpx Inter', 34, 600), '#cfe3d7');
     const big = eur(k.profit, true); T(big, 100, 520, fit(big, '800 SZpx Rubik', 190, 880), k.profit >= 0 ? '#e6c36a' : '#ff8a8f');
@@ -73,7 +76,7 @@ export async function card(kind, payload, P = {}, style = 'detail') {
       path(); x.lineTo(X(v.length - 1), Y(0)); x.closePath(); x.fillStyle = 'rgba(230,195,106,.3)'; x.fill();
       path(); x.strokeStyle = '#e6c36a'; x.lineWidth = 7; x.lineJoin = 'round'; x.stroke();
     }
-    rowsAt([['Sessions', String(k.n)], ['Bénéfice horaire', k.hourly == null ? '—' : eur(k.hourly, true) + '/h'], ['Sessions gagnantes', k.win == null ? '—' : Math.round(k.win * 100) + ' %']], 960, 90);
+    rowsAt([[tr('Sessions'), String(k.n)], [tr('Bénéfice horaire'), k.hourly == null ? '—' : eur(k.hourly, true) + '/h'], [tr('Sessions gagnantes'), k.win == null ? '—' : pct(k.win)]], 960, 90);
   }
   if (name && kind === 'one') T(name, 100, H - 80, fit(name, '700 SZpx Rubik', 40, 880), 'rgba(243,239,228,.8)');
   return new Promise(ok => c.toBlob(ok, 'image/png'));
@@ -114,17 +117,17 @@ function poster(x, kind, payload, { th, photo, name, chip, T, fit }) {
   let sub, big, cols, foot = '', date = '', small = '';
   if (kind === 'one') {
     const s = payload, p = profitOf(s), t = s.type === 'tournoi';
-    sub = [t ? 'Tournoi' : 'Cash game', s.lieu, s.jeu].filter(Boolean).join(' · ');
+    sub = [t ? tr('Tournoi') : tr('Cash game'), s.lieu, s.jeu].filter(Boolean).join(' · ');
     date = fmtD(s.date); small = s.duree ? dur(s) : '';
     big = [eur(p, true), p];
-    cols = [['Buy-in', eur(s.buyin)], ['Cash-out', eur(s.cashout)]];
-    foot = t && s.place ? s.place + 'e' + (s.joueurs ? ' sur ' + s.joueurs : '') : '';
+    cols = [[tr('Buy-in'), eur(s.buyin)], [tr('Cash-out'), eur(s.cashout)]];
+    foot = t && s.place ? placeTxt(s) : '';
   } else {
     const { list: L, label } = payload, k = summary(L);
-    sub = label.replace('Mon bilan poker', 'Bilan');
+    sub = payload.kindLabel || tr('Bilan');
     date = L.length ? fmtD(L[0].date) + ' → ' + fmtD(L[L.length - 1].date) : '';
     big = [eur(k.profit, true), k.profit];
-    cols = [['Sessions', String(k.n)], ['Bénéfice horaire', k.hourly == null ? '—' : eur(k.hourly, true) + '/h']];
+    cols = [[tr('Sessions'), String(k.n)], [tr('Bénéfice horaire'), k.hourly == null ? '—' : eur(k.hourly, true) + '/h']];
   }
   let y = hd ? 490 : 580;
   if (name) { T(name, cx, y, fit(name, '800 SZpx Rubik', 72, 880), '#f3efe4', 'center'); y += 60; }
@@ -143,4 +146,4 @@ function poster(x, kind, payload, { th, photo, name, chip, T, fit }) {
   if (foot) T(foot, cx, hd ? 1268 : 1250, fit(foot, '500 SZpx Inter', 34, 900), '#cfe3d7', 'center');
 }
 
-const dur = s => String(s.duree).replace('.', ',') + ' h de jeu';
+const dur = s => tr('{h} h de jeu', { h: num(s.duree) });

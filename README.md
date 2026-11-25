@@ -29,6 +29,7 @@ Images à partager (version détaillée et version photo) :
 - **Partage en image** d'une session ou du bilan (carte 1080×1350) via le partage natif du téléphone (WhatsApp, Messages…), sinon téléchargement.
 - **Meilleure main** d'une session : sélecteur de cartes visuel, nom de la main détecté (Full, Couleur…), affichée dans l'historique et sur les images.
 - **Paramètres** : nom de joueur, photo (recadrable : glisser, zoomer), couleur et main de départ préférée, repris sur les images partagées.
+- **Français / anglais** : langue du téléphone par défaut, modifiable dans les Paramètres (textes, montants, dates, noms des mains et images partagées).
 - **Sauvegarde** : export et import JSON pour garder une copie ou changer d'appareil.
 
 ## Structure
@@ -42,7 +43,8 @@ js/stats.js           calculs (fonctions pures, testées)
 js/live.js            session en direct (testée)
 js/profile.js         paramètres du joueur, couleurs
 js/share.js           image à partager
-js/format.js          utilitaires
+js/format.js          utilitaires (montants, dates selon la langue)
+js/i18n.js            traductions (clés = textes français, anglais dans EN)
 sw.js                 service worker (hors ligne)
 manifest.webmanifest  installation
 tests/                tests des calculs
