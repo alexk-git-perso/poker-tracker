@@ -19,9 +19,9 @@ Captures réalisées avec des données fictives, sur un écran de téléphone An
 |:---:|:---:|:---:|
 | <img src="docs/screenshots/6-partage.png" width="240" alt="Choix de l'image à partager"> | <img src="docs/screenshots/7-photos.png" width="240" alt="Fiche de session avec trois photos"> | <img src="docs/screenshots/7b-visionneuse.png" width="240" alt="Photo affichée en grand avec flèches"> |
 
-| Suppression par appui long |
-|:---:|
-| <img src="docs/screenshots/8-suppression.png" width="240" alt="Confirmation de suppression d'une session"> |
+| Suppression par appui long | Démarrer une session |
+|:---:|:---:|
+| <img src="docs/screenshots/8-suppression.png" width="240" alt="Confirmation de suppression d'une session"> | <img src="docs/screenshots/9-demarrer.png" width="240" alt="Démarrer une session : buy-in de départ"> |
 
 Images à partager (version détaillée, version photo et version album avec les photos de la session) :
 
@@ -30,15 +30,15 @@ Images à partager (version détaillée, version photo et version album avec les
 ## Fonctions
 
 - Sessions **cash game** (par défaut) ou **tournoi** : date, lieu, jeu/limite, buy-in (recaves comprises), cash-out, durée, place finale et nombre de joueurs.
-- **Enregistrement automatique** : pas de bouton Enregistrer, chaque saisie est enregistrée dès que le buy-in et le cash-out sont remplis. « Annuler » revient à l'état d'ouverture de la fiche (ou retire la session créée), fermer avec une saisie incomplète demande confirmation, et « Partager » demande au moins le buy-in et le cash-out.
-- **Session en direct** : le bouton « Démarrer » de l'accueil demande seulement le buy-in de départ et lance un chrono (type, lieu et jeu repris de la dernière session), on ajoute les recaves pendant la partie, puis on clôture avec le cash-out. Durée, buy-in total et gain horaire sont calculés, et la session en cours survit à la fermeture de l'appli.
+- **Enregistrement automatique** : pas de bouton Enregistrer, chaque saisie est enregistrée dès que le buy-in et le cash-out sont remplis. « Annuler » revient à l'état d'ouverture de la fiche (ou retire la session créée), fermer avec une saisie incomplète demande confirmation, et « Partager » demande au moins le buy-in et le cash-out. Seuls la date (préremplie), le buy-in et le cash-out sont obligatoires.
+- **Session en direct** : le bouton « ▶ Démarrer » de l'accueil, à côté de « + Session », demande seulement le buy-in de départ et lance un chrono (type, lieu et jeu repris de la dernière session), on ajoute les recaves pendant la partie, puis on clôture avec le cash-out. Durée, buy-in total et gain horaire sont calculés, et la session en cours survit à la fermeture de l'appli.
 - Courbe du **bénéfice cumulé**, filtre Tout / Cash / Tournoi.
 - Stats : bénéfice horaire, % de sessions gagnantes, plus gros gain et plus grosse perte, ROI et places payées en tournoi.
 - Onglet **Analyse** : bénéfice par mois, par lieu, par jeu/limite, écart-type par session, pire downswing, plus longue série perdante.
 - **Partage en image** d'une session ou du bilan (carte 1080×1350) en trois versions : détaillée, photo du joueur, et album avec les photos de la session (proposée seulement si la session en a), via le partage natif du téléphone (WhatsApp, Messages…), sinon téléchargement.
 - **Meilleure main** d'une session : sélecteur de cartes visuel, nom de la main détecté (Full, Couleur…), affichée dans l'historique et sur les images.
 - **Photos de session** : jusqu'à 5 photos par session, ajoutées en une fois ou une par une. Elles sont réduites à 1600 px en JPEG et stockées localement dans IndexedDB, et s'ouvrent en grand avec navigation par glissement ou flèches. L'appli demande un stockage persistant, et l'espace utilisé est affiché dans « À propos ». Les photos ne sont pas incluses dans la sauvegarde JSON.
-- **Gestes** : balayer horizontalement pour passer de Sessions à Analyse, appui long sur une session de la liste pour la supprimer (avec confirmation et « Annuler »).
+- **Gestes** : balayer horizontalement pour passer de Sessions à Analyse, appui long sur une session de la liste pour la supprimer (avec confirmation et « Annuler »), glisser vers le bas pour fermer une fenêtre.
 - **Paramètres** : nom de joueur, photo (recadrable : glisser, zoomer), couleur et main de départ préférée, repris sur les images partagées.
 - **Devise** au choix dans les Paramètres (€, $, £, CHF, C$), affichage uniquement, sans conversion.
 - **Français / anglais** : langue du téléphone par défaut, modifiable dans les Paramètres (textes, montants, dates, noms des mains et images partagées).

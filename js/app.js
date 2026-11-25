@@ -690,7 +690,7 @@ render();
 db.getLive().then(l => { LIVE = l || null; renderLive(); }).catch(() => {});
 db.getProfile().then(p => { P = p; if ($('pfs').classList.contains('on')) $('pfname').value = P.name || ''; renderProfile(); }).catch(() => {});
 db.all().then(rows => {
-  setTimeout(() => db.gcPhotos(new Set(rows.flatMap(photosOf))).catch(() => {}), 3000);
+  setTimeout(() => db.gcPhotos(new Set([...S, ...(orig ? [orig] : [])].flatMap(photosOf).concat(formPhotos.map(p => p.id)))).catch(() => {}), 3000);
   // Ancienne version : retire toute session d'exemple qui aurait été enregistrée, sans toucher aux vraies
   const demo = rows.filter(s => s.demo || /^demo\d+$/.test(s.id));
   S = rows.filter(s => !demo.includes(s));
