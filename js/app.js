@@ -147,8 +147,9 @@ function live() {
   el.textContent = t('Résultat : {p}', { p: eur(p, true) }); el.className = 'live ' + cls(p);
 }
 ['f-buyin', 'f-cashout'].forEach(i => $(i).oninput = live);
+let openedNew = false;
 function openForm(s) {
-  editing = s ? s.id : null;
+  editing = s ? s.id : null; openedNew = !s;
   $('ft').textContent = t(editing ? 'Modifier la session' : 'Nouvelle session');
   $('del').hidden = $('shareOne').hidden = !editing;
   $('golive').hidden = $('golivehint').hidden = !!editing || !!LIVE;
@@ -171,29 +172,43 @@ $('list').onclick = e => {
   const s = S.find(x => x.id === r.dataset.id);
   openForm(s || null);
 };
-$('frm').onsubmit = e => {
-  e.preventDefault();
+// Construit et enregistre la session depuis la fiche, sans la fermer.
+function saveForm() {
   const o = { id: editing || uid(), type: ftype };
   F.forEach(f => { const v = $('f-' + f).value.trim(); o[f] = NUM.includes(f) ? (v === '' ? null : +v) : v; });
   o.buyin ||= 0; o.cashout ||= 0;
   const prev = editing && S.find(s => s.id === editing);
   if (prev?.recaves) o.recaves = prev.recaves;
   if (formHand.length) o.hand = formHand.slice();
-  delete o.photo;
   if (formPhotos.length) {
     o.photos = formPhotos.map(p => p.id);
-    formPhotos.filter(p => p.isNew).forEach(p => db.putPhoto(p.id, p.blob).catch(() => toast(t('Photo non enregistrée sur cet appareil.'))));
+    formPhotos.filter(p => p.isNew).forEach(p => { p.isNew = false; db.putPhoto(p.id, p.blob).catch(() => toast(t('Photo non enregistrée sur cet appareil.'))); });
   }
   if (ftype !== 'tournoi') { o.place = null; o.joueurs = null; }
-  S = editing ? S.map(s => (s.id === editing ? o : s)) : S.concat(o);
-  persistOne(o); closeForm();
+  S = prev ? S.map(s => (s.id === editing ? o : s)) : S.concat(o);
+  persistOne(o);
+  if (S.length === 1) db.persist();
+  editing = o.id;
+  return o;
+}
+// Ajout ou retrait d'une photo : enregistrement immédiat, la fiche reste ouverte.
+function autoSave() {
+  if (!$('sh').classList.contains('on')) return;
+  if (!$('frm').checkValidity()) { toast(t('Complétez la session puis enregistrez pour garder les photos.')); return; }
+  const fresh = !editing;
+  saveForm(); render();
+  if (fresh) { $('ft').textContent = t('Modifier la session'); $('del').hidden = $('shareOne').hidden = false; $('golive').hidden = $('golivehint').hidden = true; }
+  toast(t(fresh ? 'Session ajoutée.' : 'Session enregistrée.'));
+}
+$('frm').onsubmit = e => {
+  e.preventDefault();
+  const o = saveForm(); closeForm();
   // Montrer la session enregistrée : onglet Sessions, filtre compatible, ligne mise en évidence
   showTab('tab-sessions');
   if (filter !== 'all' && filter !== o.type) document.querySelector('#flt [data-f=all]').click(); else render();
   const row = [...document.querySelectorAll('.row')].find(r => r.dataset.id === o.id);
   if (row) { row.classList.add('new'); row.scrollIntoView({ block: 'center', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' }); setTimeout(() => row.classList.remove('new'), 2000); }
-  toast(t(editing ? 'Session modifiée.' : 'Session ajoutée.'));
-  if (S.length === 1) db.persist();
+  toast(t(openedNew ? 'Session ajoutée.' : 'Session modifiée.'));
 };
 function toast(m, undo) {
   $('tmsg').textContent = m; $('undo').hidden = !undo; $('toast').classList.add('on');
@@ -446,7 +461,7 @@ function setFormPhotos(L) {
 }
 $('f-phs').onclick = e => {
   const x = e.target.closest('[data-x]'), v = e.target.closest('[data-i]');
-  if (x) setFormPhotos(formPhotos.filter((_, i) => i !== +x.dataset.x));
+  if (x) { setFormPhotos(formPhotos.filter((_, i) => i !== +x.dataset.x)); autoSave(); }
   else if (v) showPhoto(+v.dataset.i, true);
 };
 $('f-photo').onchange = async () => {
@@ -458,7 +473,7 @@ $('f-photo').onchange = async () => {
     try { add.push({ id: 'ph-' + uid(), blob: await sessionPhoto(f), isNew: true }); }
     catch (e) { toast(t('Cette image n’a pas pu être lue.')); }
   }
-  if (add.length) { setFormPhotos([...formPhotos, ...add]); db.persist(); }
+  if (add.length) { setFormPhotos([...formPhotos, ...add]); db.persist(); autoSave(); }
 };
 function showPhoto(i, open) {
   if (!formPhotos.length) { $('phs').classList.remove('on'); return; }
@@ -470,7 +485,7 @@ function showPhoto(i, open) {
 }
 $('phsp').onclick = () => showPhoto(phIdx - 1);
 $('phsn').onclick = () => showPhoto(phIdx + 1);
-$('phsd').onclick = () => { setFormPhotos(formPhotos.filter((_, i) => i !== phIdx)); showPhoto(phIdx); };
+$('phsd').onclick = () => { setFormPhotos(formPhotos.filter((_, i) => i !== phIdx)); showPhoto(phIdx); autoSave(); };
 (() => {
   let x0 = null;
   $('phsimg').parentElement.addEventListener('touchstart', e => { x0 = e.touches.length === 1 ? e.touches[0].clientX : null; }, { passive: true });

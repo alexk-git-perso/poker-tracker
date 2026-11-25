@@ -39,7 +39,7 @@ const EN = {
   'Meilleure main': 'Best hand', 'Notes': 'Notes', 'Table, mains marquantes…': 'Table, notable hands…', 'Supprimer': 'Delete',
   'Partager en image': 'Share as image', 'Démarrer maintenant': 'Start now', 'Enregistrer': 'Save',
   '« Démarrer maintenant » lance le chrono avec ce buy-in : vous ajouterez les recaves et le cash-out pendant la partie.': '“Start now” starts the timer with this buy-in: you’ll add rebuys and the cash-out during the game.',
-  'Résultat : {p}': 'Result: {p}', 'Session modifiée.': 'Session updated.', 'Session ajoutée.': 'Session added.', 'Session supprimée.': 'Session deleted.',
+  'Résultat : {p}': 'Result: {p}', 'Session modifiée.': 'Session updated.', 'Session enregistrée.': 'Session saved.', 'Complétez la session puis enregistrez pour garder les photos.': 'Complete the session and save it to keep the photos.', 'Session ajoutée.': 'Session added.', 'Session supprimée.': 'Session deleted.',
   'Choisir les cartes': 'Choose cards', 'Photo': 'Photo', 'Ajouter une photo': 'Add a photo', 'Changer la photo': 'Change photo', 'Voir la photo': 'View photo', 'Photos': 'Photos', 'Album': 'Album', 'Version avec les photos de la session': 'Version with the session photos', 'Supprimer cette session ?': 'Delete this session?', 'Ajouter des photos': 'Add photos', '{n} photos au plus par session.': 'Up to {n} photos per session.', 'Photo précédente': 'Previous photo', 'Photo suivante': 'Next photo',
   'Photo de la session': 'Session photo', 'Photo non enregistrée sur cet appareil.': 'Photo not saved on this device.', 'Avec photo': 'With photo',
   'Les photos des sessions ne sont pas incluses dans la sauvegarde.': 'Session photos are not included in the backup.',
