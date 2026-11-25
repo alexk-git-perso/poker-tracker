@@ -198,12 +198,23 @@ $('bkimp').onclick = () => {
 };
 
 /* ---------- Partage en image ---------- */
+let shots = {}, pickSt = 'detail';
+try { pickSt = localStorage.getItem('poker-card') === 'poster' ? 'poster' : 'detail'; } catch (e) { /* facultatif */ }
+function pick(st) {
+  pickSt = st; shot = shots[st];
+  document.querySelectorAll('#shpick [data-st]').forEach(b => b.setAttribute('aria-checked', b.dataset.st === st));
+  try { localStorage.setItem('poker-card', st); } catch (e) { /* facultatif */ }
+}
+$('shpick').onclick = e => { const b = e.target.closest('[data-st]'); if (b && shots[b.dataset.st]) pick(b.dataset.st); };
 async function share(kind, s) {
-  const b = await card(kind, kind === 'one' ? s : { list: view(), label: label() }, P);
-  if (!b) { toast('Image impossible à créer sur cet appareil.'); return; }
-  shot = { blob: b, name: kind === 'one' ? 'poker-' + s.date + '.png' : 'poker-bilan-' + today() + '.png' };
-  const im = $('shimg'); if (im.src) URL.revokeObjectURL(im.src); im.src = URL.createObjectURL(b);
-  const native = canShareFiles(b);
+  const payload = kind === 'one' ? s : { list: view(), label: label() };
+  const [d, p] = await Promise.all([card(kind, payload, P, 'detail'), card(kind, payload, P, 'poster')]);
+  if (!d || !p) { toast('Image impossible à créer sur cet appareil.'); return; }
+  const base = kind === 'one' ? 'poker-' + s.date : 'poker-bilan-' + today();
+  shots = { detail: { blob: d, name: base + '.png' }, poster: { blob: p, name: base + '-photo.png' } };
+  document.querySelectorAll('#shpick [data-st]').forEach(b => { const im = b.querySelector('img'); if (im.src) URL.revokeObjectURL(im.src); im.src = URL.createObjectURL(shots[b.dataset.st].blob); });
+  pick(pickSt);
+  const native = canShareFiles(d);
   $('shgo').textContent = native ? 'Partager' : 'Télécharger';
   $('shcopy').hidden = !(window.ClipboardItem && navigator.clipboard?.write);
   $('shmsg').textContent = native ? 'Envoyez-la directement à vos amis (WhatsApp, Messages…).' : 'Téléchargez l’image, puis envoyez-la à vos amis.';

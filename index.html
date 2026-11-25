@@ -122,7 +122,10 @@
 
 <div class="sheet" id="shs" role="dialog" aria-modal="true" aria-labelledby="stl"><div class="panel">
   <h3 id="stl">Partager en image</h3>
-  <img id="shimg" alt="Aperçu de l’image à partager" style="display:block;width:100%;max-width:360px;margin:0 auto;border-radius:14px;border:1px solid var(--line)">
+  <div class="pick" id="shpick" role="radiogroup" aria-label="Version de l’image">
+    <button role="radio" data-st="detail" aria-checked="true"><img alt="Version détaillée"><span>Détaillée</span></button>
+    <button role="radio" data-st="poster" aria-checked="false"><img alt="Version photo"><span>Photo</span></button>
+  </div>
   <p class="note" id="shmsg" style="margin-top:10px"></p>
   <div class="acts"><button class="btn" id="shclose">Fermer</button><button class="btn" id="shcopy">Copier l’image</button><button class="btn pri" id="shgo">Partager</button></div>
 </div></div>
