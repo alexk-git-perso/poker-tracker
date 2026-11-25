@@ -1,6 +1,6 @@
 // Hors ligne. Stratégie « réseau d'abord » : en ligne on charge toujours la dernière version,
 // hors ligne on sert la copie en cache. Changer VERSION à chaque mise en ligne.
-const VERSION = 'poker-v9';
+const VERSION = 'poker-v10';
 const FONTS = 'poker-fonts';
 const SHELL = [
   './', 'index.html', 'manifest.webmanifest', 'css/app.css',

@@ -6,7 +6,7 @@ import { THEMES, applyTheme, initials, sourceFromFile, defaultCrop, clampCrop, d
 import { liveTotals, finishLive, clock } from './live.js';
 
 const $ = id => document.getElementById(id);
-const APP_VERSION = 9; // à garder en phase avec VERSION dans sw.js
+const APP_VERSION = 10; // à garder en phase avec VERSION dans sw.js
 let P = {}, LIVE = null, S = [], filter = 'all', editing = null, ftype = 'cash', lastDel = null, tt, shot = null, stored = true;
 const data = () => S;
 const view = () => sortByDate(data().filter(s => filter === 'all' || s.type === filter));
@@ -392,6 +392,31 @@ document.querySelectorAll('.sheet').forEach(sh => {
     } else { panel.style.transform = ''; sh.style.background = ''; }
   };
   panel.addEventListener('touchend', end); panel.addEventListener('touchcancel', end);
+});
+
+/* ---------- Android : bouton Retour et défilement ---------- */
+// Chaque fenêtre ouverte ajoute une étape d'historique : le bouton Retour la ferme au lieu de quitter l'appli.
+// Une seule étape d'historique tant qu'au moins une fenêtre est ouverte.
+let fromPop = false, backTimer = null;
+const anyOpen = () => !!document.querySelector('.sheet.on');
+const sheetObs = new MutationObserver(() => {
+  const open = anyOpen();
+  // Bloque le défilement et le « tirer pour actualiser » de la page derrière une fenêtre
+  document.documentElement.classList.toggle('modal', open);
+  if (open) {
+    clearTimeout(backTimer); backTimer = null;
+    if (!history.state?.modal) history.pushState({ modal: 1 }, '');
+  } else if (!fromPop && history.state?.modal && !backTimer) {
+    // Léger délai : si une autre fenêtre s'ouvre juste après (ex. partage), on garde l'étape
+    backTimer = setTimeout(() => { backTimer = null; if (!anyOpen() && history.state?.modal) history.back(); }, 400);
+  }
+});
+document.querySelectorAll('.sheet').forEach(sh => sheetObs.observe(sh, { attributes: true, attributeFilter: ['class'] }));
+addEventListener('popstate', () => {
+  const top = [...document.querySelectorAll('.sheet.on')].pop();
+  if (!top) return;
+  fromPop = true; closeSheet(top.id);
+  setTimeout(() => { fromPop = false; if (anyOpen()) history.pushState({ modal: 1 }, ''); });
 });
 
 /* ---------- Installation ---------- */

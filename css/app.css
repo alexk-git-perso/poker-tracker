@@ -133,3 +133,5 @@ summary{cursor:pointer;min-height:44px;display:flex;align-items:center}
 .zoom input{height:44px;padding:0;border:0;background:none;accent-color:var(--chip)}
 .grab{width:44px;height:5px;border-radius:3px;background:var(--line);margin:-6px auto 12px}
 @media(min-width:620px){.grab{display:none}}
+html.modal,html.modal body{overflow:hidden;overscroll-behavior:none}
+.sheet,.panel{overscroll-behavior:contain}
