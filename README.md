@@ -1,11 +1,48 @@
 # Suivi poker
 
-Application de suivi de parties de poker (cash game par défaut, tournois possibles).
+Appli de suivi de parties de poker, installable sur téléphone et ordinateur (PWA), qui fonctionne hors ligne.
+Les données restent **uniquement sur l'appareil** (IndexedDB) : aucun serveur, aucun compte.
 
-- Saisie des sessions : date, lieu, jeu/limite, buy-in (recaves comprises), cash-out, durée, place en tournoi.
-- Courbe du bénéfice cumulé, filtre Cash / Tournoi.
-- Stats : bénéfice horaire, % de sessions gagnantes, plus gros gain / perte, ROI et places payées en tournoi.
-- Données stockées uniquement en local (IndexedDB), sauvegarde/import JSON.
-- Partage d'une session ou du bilan sous forme d'image PNG.
+## Fonctions
 
-Prototype en une page : ouvrir `index.html` dans un navigateur.
+- Sessions **cash game** (par défaut) ou **tournoi** : date, lieu, jeu/limite, buy-in (recaves comprises), cash-out, durée, place finale et nombre de joueurs.
+- Courbe du **bénéfice cumulé**, filtre Tout / Cash / Tournoi.
+- Stats : bénéfice horaire, % de sessions gagnantes, plus gros gain et plus grosse perte, ROI et places payées en tournoi.
+- Onglet **Analyse** : bénéfice par mois, par lieu, par jeu/limite, écart-type par session, pire downswing, plus longue série perdante.
+- **Partage en image** d'une session ou du bilan (carte 1080×1350) via le partage natif du téléphone (WhatsApp, Messages…), sinon téléchargement.
+- **Sauvegarde** : export et import JSON pour garder une copie ou changer d'appareil.
+
+## Structure
+
+```
+index.html            page unique
+css/app.css           styles
+js/app.js             interface
+js/db.js              base locale IndexedDB
+js/stats.js           calculs (fonctions pures, testées)
+js/share.js           image à partager
+js/format.js, demo.js utilitaires, exemples affichés tant qu'il n'y a pas de données
+sw.js                 service worker (hors ligne)
+manifest.webmanifest  installation
+tests/                tests des calculs
+```
+
+Pas d'étape de build : ce sont des fichiers statiques.
+
+## Lancer en local
+
+```sh
+python3 -m http.server 8000
+# puis ouvrir http://localhost:8000
+```
+
+## Tests
+
+```sh
+node --test tests/
+```
+
+## Mise en ligne
+
+N'importe quel hébergement statique en HTTPS convient (GitHub Pages, Netlify, Cloudflare Pages).
+Pensez à changer `VERSION` dans `sw.js` à chaque mise en ligne pour que les téléphones récupèrent la nouvelle version.
