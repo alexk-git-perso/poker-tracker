@@ -16,7 +16,7 @@ export async function card(kind, payload, P = {}, style = 'detail', pics = []) {
   const g = x.createRadialGradient(320, 0, 80, 540, 500, 1300);
   g.addColorStop(0, th.felt2); g.addColorStop(1, th.felt);
   x.fillStyle = g; x.fillRect(0, 0, W, H);
-  x.strokeStyle = 'rgba(230,195,106,.5)'; x.lineWidth = 6; x.strokeRect(40, 40, W - 80, H - 80);
+  x.strokeStyle = 'rgba(230,195,106,.5)'; x.lineWidth = 6; x.beginPath(); x.roundRect(40, 40, W - 80, H - 80, 40); x.stroke();
   const chip = (cx, cy, r, col) => {
     x.fillStyle = col; x.beginPath(); x.arc(cx, cy, r, 0, 7); x.fill();
     x.strokeStyle = '#fff'; x.lineWidth = r * .18; x.setLineDash([r * .42, r * .36]);
