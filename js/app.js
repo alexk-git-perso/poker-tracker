@@ -132,9 +132,8 @@ function openForm(s) {
   F.forEach(f => $('f-' + f).value = v[f] ?? '');
   setType(v.type || 'cash');
   $('sh').classList.add('on');
-  setTimeout(() => $(editing ? 'f-cashout' : 'f-buyin').focus(), 50);
 }
-const closeForm = () => { $('sh').classList.remove('on'); $('add').focus(); };
+const closeForm = () => { $('sh').classList.remove('on'); };
 $('add').onclick = () => openForm();
 $('cancel').onclick = closeForm;
 $('list').onclick = e => {
@@ -334,7 +333,7 @@ $('golive').onclick = () => {
   saveLive(); closeForm(); lvShow('main'); renderLive(); scrollTo({ top: 0 });
   toast('Session démarrée. Bonne partie !');
 };
-$('lv-rebuy').onclick = () => { const last = LIVE.buyins[LIVE.buyins.length - 1]; $('lv-amt').value = last ? last.amount : ''; lvShow('rebuy'); $('lv-amt').focus(); };
+$('lv-rebuy').onclick = () => { const last = LIVE.buyins[LIVE.buyins.length - 1]; $('lv-amt').value = last ? last.amount : ''; lvShow('rebuy'); };
 $('lv-frx').onclick = () => lvShow('main');
 $('lv-fr').onsubmit = e => {
   e.preventDefault(); const a = +$('lv-amt').value; if (!(a > 0)) return;
@@ -342,7 +341,7 @@ $('lv-fr').onsubmit = e => {
   toast('Recave de ' + eur(a) + ' ajoutée.');
 };
 $('lv-undo').onclick = () => { if (LIVE.buyins.length > 1) { const r = LIVE.buyins.pop(); saveLive(); renderLive(); toast('Recave de ' + eur(r.amount) + ' retirée.'); } };
-$('lv-end').onclick = () => { $('lv-out').value = ''; $('lv-place').value = ''; $('lv-joueurs').value = ''; lvShow('end'); liveResult(); $('lv-out').focus(); };
+$('lv-end').onclick = () => { $('lv-out').value = ''; $('lv-place').value = ''; $('lv-joueurs').value = ''; lvShow('end'); liveResult(); };
 $('lv-out').oninput = liveResult;
 $('lv-fex').onclick = () => lvShow('main');
 $('lv-fe').onsubmit = e => {
