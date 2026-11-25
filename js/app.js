@@ -107,6 +107,28 @@ function showTab(id) {
   try { localStorage.setItem('poker-tab', id); } catch (e) { /* facultatif */ }
 }
 tabs.forEach(t => t.onclick = () => showTab(t.id));
+
+// Balayage horizontal entre Sessions et Analyse.
+(() => {
+  let x0 = null, y0 = 0, t0 = 0;
+  const skip = el => el.closest('.sheet, input, textarea, select, .crop') ||
+    [...document.querySelectorAll('.tbl')].some(b => b.contains(el) && b.scrollWidth > b.clientWidth + 2);
+  document.addEventListener('touchstart', e => {
+    x0 = null;
+    if (e.touches.length !== 1 || skip(e.target)) return;
+    x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; t0 = Date.now();
+  }, { passive: true });
+  document.addEventListener('touchend', e => {
+    if (x0 == null) return;
+    const p = e.changedTouches[0], dx = p.clientX - x0, dy = p.clientY - y0; x0 = null;
+    if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 1.5 || Date.now() - t0 > 700) return;
+    const i = tabs.findIndex(t => t.getAttribute('aria-selected') === 'true'), j = i + (dx < 0 ? 1 : -1);
+    if (j < 0 || j >= tabs.length) return;
+    showTab(tabs[j].id);
+    const v = $(tabs[j].getAttribute('aria-controls'));
+    v.classList.remove('in-l', 'in-r'); void v.offsetWidth; v.classList.add(dx < 0 ? 'in-r' : 'in-l');
+  }, { passive: true });
+})();
 try { const t = localStorage.getItem('poker-tab'); if (t && $(t)) showTab(t); } catch (e) { /* facultatif */ }
 
 /* ---------- Formulaire ---------- */
