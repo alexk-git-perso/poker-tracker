@@ -188,3 +188,12 @@ html.modal,html.modal body{overflow:hidden;overscroll-behavior:none}
 @keyframes inr{from{transform:translateX(40px);opacity:0}}@keyframes inl{from{transform:translateX(-40px);opacity:0}}
 @media (prefers-reduced-motion:reduce){[role=tabpanel].in-r,[role=tabpanel].in-l{animation:none}}
 html,body{overscroll-behavior-x:none}
+.phrow:empty{display:none}.phrow{margin-bottom:8px}
+.phth{position:relative;flex:none}
+.phth .phprev{width:72px;height:72px}
+.phx{position:absolute;top:-6px;right:-6px;width:26px;height:26px;border-radius:50%;border:2px solid var(--surf);background:var(--ink);color:var(--surf);font:700 15px/1 system-ui;padding:0;cursor:pointer}
+.phadd{color:var(--ink);cursor:pointer;justify-self:start;width:max-content}
+.phstage{position:relative;touch-action:pan-y}
+.phnav{position:absolute;top:50%;transform:translateY(-50%);width:44px;height:44px;border-radius:50%;border:0;background:rgba(0,0,0,.45);color:#fff;font:400 30px/1 system-ui;cursor:pointer}
+.phnav.prev{left:8px}.phnav.next{right:8px}.phnav[hidden]{display:none}
+.viewer .acts .m{color:#bbb;margin-right:auto}

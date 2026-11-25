@@ -35,7 +35,7 @@ function render() {
   $('list').innerHTML = rev.length ? rev.map(s => {
     const p = profitOf(s), tt = s.type === 'tournoi';
     const meta = fmtD(s.date) + (s.duree ? ' · ' + num(s.duree) + ' h' : '') + (tt && s.place ? ' · ' + ord(s.place) + (s.joueurs ? '/' + s.joueurs : '') : '') + (s.recaves ? ' · ' + tn(s.recaves, '{n} recave', '{n} recaves') : '');
-    return `<button class="row" data-id="${esc(s.id)}"><span class="chipi ${tt ? 't' : ''}">${tt ? 'MTT' : 'CG'}</span><span><span class="d">${esc(s.lieu || t('Session'))}${s.photo ? `<svg class="ico" viewBox="0 0 24 24" role="img" aria-label="${esc(t('Avec photo'))}"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>` : ''}</span> <span class="m">· ${esc(s.jeu || (tt ? t('Tournoi') : t('Cash game')))}</span><br><span class="m">${esc(meta)}</span>${s.hand?.length ? `<span class="cards" title="${esc(handName(s.hand))}">${s.hand.filter(isCard).map(c => cardHTML(c)).join('')}</span>` : ''}</span><span class="p ${cls(p)}">${eur(p, true)}<small>${eur(s.buyin)} → ${eur(s.cashout)}</small></span></button>`;
+    return `<button class="row" data-id="${esc(s.id)}"><span class="chipi ${tt ? 't' : ''}">${tt ? 'MTT' : 'CG'}</span><span><span class="d">${esc(s.lieu || t('Session'))}${photosOf(s).length ? `<svg class="ico" viewBox="0 0 24 24" role="img" aria-label="${esc(t('Avec photo'))}"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>` : ''}</span> <span class="m">· ${esc(s.jeu || (tt ? t('Tournoi') : t('Cash game')))}</span><br><span class="m">${esc(meta)}</span>${s.hand?.length ? `<span class="cards" title="${esc(handName(s.hand))}">${s.hand.filter(isCard).map(c => cardHTML(c)).join('')}</span>` : ''}</span><span class="p ${cls(p)}">${eur(p, true)}<small>${eur(s.buyin)} → ${eur(s.cashout)}</small></span></button>`;
   }).join('') : `<div class="empty">${t('Aucune session pour ce filtre. Ajoutez-en une avec « + Session ».')}</div>`;
 
   const opts = k2 => [...new Set(all.map(s => s[k2]).filter(Boolean))].map(v => `<option value="${esc(v)}">`).join('');
@@ -157,8 +157,10 @@ function openForm(s) {
   F.forEach(f => $('f-' + f).value = v[f] ?? '');
   setType(v.type || 'cash');
   formHand = (v.hand || []).filter(isCard); renderHandBtn();
-  setFormPhoto(null);
-  if (v.photo) db.getPhoto(v.photo).then(b => { if (b && editing === s.id) setFormPhoto({ id: v.photo, blob: b, isNew: false }); }).catch(() => {});
+  setFormPhotos([]);
+  const ids = photosOf(v);
+  if (ids.length) Promise.all(ids.map(id => db.getPhoto(id).then(blob => blob && { id, blob, isNew: false }).catch(() => null)))
+    .then(L => { if (editing === s.id) setFormPhotos(L.filter(Boolean)); });
   $('sh').classList.add('on');
 }
 const closeForm = () => { $('sh').classList.remove('on'); };
@@ -177,9 +179,10 @@ $('frm').onsubmit = e => {
   const prev = editing && S.find(s => s.id === editing);
   if (prev?.recaves) o.recaves = prev.recaves;
   if (formHand.length) o.hand = formHand.slice();
-  if (formPhoto) {
-    o.photo = formPhoto.id;
-    if (formPhoto.isNew) db.putPhoto(formPhoto.id, formPhoto.blob).catch(() => toast(t('Photo non enregistrée sur cet appareil.')));
+  delete o.photo;
+  if (formPhotos.length) {
+    o.photos = formPhotos.map(p => p.id);
+    formPhotos.filter(p => p.isNew).forEach(p => db.putPhoto(p.id, p.blob).catch(() => toast(t('Photo non enregistrée sur cet appareil.'))));
   }
   if (ftype !== 'tournoi') { o.place = null; o.joueurs = null; }
   S = editing ? S.map(s => (s.id === editing ? o : s)) : S.concat(o);
@@ -220,7 +223,7 @@ $('bkfile').onchange = async () => { const f = $('bkfile').files[0]; if (f) { $(
 const clean = s => ({
   id: String(s.id || uid()), type: s.type === 'tournoi' ? 'tournoi' : 'cash', date: String(s.date).slice(0, 10),
   lieu: String(s.lieu || ''), jeu: String(s.jeu || ''), buyin: +s.buyin, cashout: +s.cashout,
-  duree: s.duree == null ? null : +s.duree, place: s.place == null ? null : +s.place, joueurs: s.joueurs == null ? null : +s.joueurs, recaves: +s.recaves || 0, notes: String(s.notes || ''), ...(typeof s.photo === 'string' && s.photo ? { photo: s.photo } : {}), ...(Array.isArray(s.hand) && s.hand.every(isCard) && s.hand.length ? { hand: s.hand.slice(0, 5) } : {}),
+  duree: s.duree == null ? null : +s.duree, place: s.place == null ? null : +s.place, joueurs: s.joueurs == null ? null : +s.joueurs, recaves: +s.recaves || 0, notes: String(s.notes || ''), ...(photosOf(s).length ? { photos: photosOf(s) } : {}), ...(Array.isArray(s.hand) && s.hand.every(isCard) && s.hand.length ? { hand: s.hand.slice(0, 5) } : {}),
 });
 $('bkimp').onclick = () => {
   try {
@@ -394,22 +397,55 @@ $('lv-drop').onclick = () => {
 };
 document.addEventListener('visibilitychange', () => { if (!document.hidden && LIVE) renderLive(); });
 
-/* ---------- Photo de session ---------- */
-let formPhoto = null; // { id, blob, url, isNew }
-function setFormPhoto(p) {
-  if (formPhoto?.url) URL.revokeObjectURL(formPhoto.url);
-  formPhoto = p ? { ...p, url: URL.createObjectURL(p.blob) } : null;
-  $('f-phview').hidden = $('f-phdel').hidden = !formPhoto;
-  if (formPhoto) $('f-phimg').src = formPhoto.url; else $('f-phimg').removeAttribute('src');
-  $('f-phlbl').textContent = t(formPhoto ? 'Changer la photo' : 'Ajouter une photo');
+/* ---------- Photos de session (5 au plus) ---------- */
+const MAXPH = 5;
+// Ancien format : une seule photo dans s.photo.
+function photosOf(s) { return (Array.isArray(s.photos) ? s.photos : s.photo ? [s.photo] : []).filter(x => typeof x === 'string' && x).slice(0, 5); }
+let formPhotos = []; // [{ id, blob, url, isNew }]
+let phIdx = 0;
+function setFormPhotos(L) {
+  const keep = new Set(L.map(p => p.url).filter(Boolean));
+  formPhotos.forEach(p => { if (p.url && !keep.has(p.url)) URL.revokeObjectURL(p.url); });
+  formPhotos = L.slice(0, MAXPH).map(p => p.url ? p : { ...p, url: URL.createObjectURL(p.blob) });
+  $('f-phs').innerHTML = formPhotos.map((p, i) => `<span class="phth"><button type="button" class="phprev" data-i="${i}" aria-label="${esc(t('Voir la photo'))} ${i + 1}"><img src="${p.url}" alt=""></button><button type="button" class="phx" data-x="${i}" aria-label="${esc(t('Retirer la photo'))} ${i + 1}">×</button></span>`).join('');
+  $('f-phn').textContent = formPhotos.length ? `${formPhotos.length}/${MAXPH}` : '';
+  $('f-phadd').hidden = formPhotos.length >= MAXPH;
 }
-$('f-photo').onchange = async () => {
-  const f = $('f-photo').files[0]; $('f-photo').value = ''; if (!f) return;
-  try { setFormPhoto({ id: 'ph-' + uid(), blob: await sessionPhoto(f), isNew: true }); db.persist(); }
-  catch (e) { toast(t('Cette image n’a pas pu être lue.')); }
+$('f-phs').onclick = e => {
+  const x = e.target.closest('[data-x]'), v = e.target.closest('[data-i]');
+  if (x) setFormPhotos(formPhotos.filter((_, i) => i !== +x.dataset.x));
+  else if (v) showPhoto(+v.dataset.i, true);
 };
-$('f-phdel').onclick = () => setFormPhoto(null);
-$('f-phview').onclick = () => { if (formPhoto) { $('phsimg').src = formPhoto.url; $('phs').classList.add('on'); } };
+$('f-photo').onchange = async () => {
+  const files = [...$('f-photo').files]; $('f-photo').value = '';
+  const room = MAXPH - formPhotos.length; if (!files.length || room <= 0) return;
+  if (files.length > room) toast(t('{n} photos au plus par session.', { n: MAXPH }));
+  const add = [];
+  for (const f of files.slice(0, room)) {
+    try { add.push({ id: 'ph-' + uid(), blob: await sessionPhoto(f), isNew: true }); }
+    catch (e) { toast(t('Cette image n’a pas pu être lue.')); }
+  }
+  if (add.length) { setFormPhotos([...formPhotos, ...add]); db.persist(); }
+};
+function showPhoto(i, open) {
+  if (!formPhotos.length) { $('phs').classList.remove('on'); return; }
+  phIdx = Math.max(0, Math.min(i, formPhotos.length - 1));
+  $('phsimg').src = formPhotos[phIdx].url;
+  $('phsc').textContent = formPhotos.length > 1 ? `${phIdx + 1} / ${formPhotos.length}` : '';
+  $('phsp').hidden = phIdx === 0; $('phsn').hidden = phIdx >= formPhotos.length - 1;
+  if (open) $('phs').classList.add('on');
+}
+$('phsp').onclick = () => showPhoto(phIdx - 1);
+$('phsn').onclick = () => showPhoto(phIdx + 1);
+$('phsd').onclick = () => { setFormPhotos(formPhotos.filter((_, i) => i !== phIdx)); showPhoto(phIdx); };
+(() => {
+  let x0 = null;
+  $('phsimg').parentElement.addEventListener('touchstart', e => { x0 = e.touches.length === 1 ? e.touches[0].clientX : null; }, { passive: true });
+  $('phsimg').parentElement.addEventListener('touchend', e => {
+    if (x0 == null) return; const dx = e.changedTouches[0].clientX - x0; x0 = null;
+    if (Math.abs(dx) > 50) showPhoto(phIdx + (dx < 0 ? 1 : -1));
+  }, { passive: true });
+})();
 $('phsx').onclick = () => $('phs').classList.remove('on');
 
 /* ---------- Meilleure main ---------- */
@@ -555,7 +591,7 @@ render();
 db.getLive().then(l => { LIVE = l || null; renderLive(); }).catch(() => {});
 db.getProfile().then(p => { P = p; if ($('pfs').classList.contains('on')) $('pfname').value = P.name || ''; renderProfile(); }).catch(() => {});
 db.all().then(rows => {
-  setTimeout(() => db.gcPhotos(new Set(rows.map(s => s.photo).filter(Boolean))).catch(() => {}), 3000);
+  setTimeout(() => db.gcPhotos(new Set(rows.flatMap(photosOf))).catch(() => {}), 3000);
   // Ancienne version : retire toute session d'exemple qui aurait été enregistrée, sans toucher aux vraies
   const demo = rows.filter(s => s.demo || /^demo\d+$/.test(s.id));
   S = rows.filter(s => !demo.includes(s));

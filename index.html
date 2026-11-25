@@ -104,13 +104,10 @@
       <label>Joueurs<input type="number" id="f-joueurs" min="2" inputmode="numeric"></label>
     </div>
     <div class="full hfield"><span class="hlbl" id="f-hlbl">Meilleure main</span><button type="button" class="handbtn" id="f-hand" aria-describedby="f-hlbl"></button></div>
-    <div class="full hfield"><span class="hlbl">Photo</span>
-      <div class="phrow">
-        <button type="button" class="phprev" id="f-phview" hidden aria-label="Voir la photo"><img id="f-phimg" alt=""></button>
-        <div class="phbtns">
-          <label class="btn"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z" fill="none"/><circle cx="12" cy="13" r="3.5" fill="none"/></svg><span id="f-phlbl">Ajouter une photo</span><input type="file" id="f-photo" accept="image/*" hidden></label>
-          <button type="button" class="btn ghost" id="f-phdel" hidden>Retirer la photo</button>
-        </div>
+    <div class="full hfield"><span class="hlbl">Photos <span class="m" id="f-phn"></span></span>
+      <div class="phrow" id="f-phs"></div>
+      <label class="btn phadd" id="f-phadd"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z" fill="none"/><circle cx="12" cy="13" r="3.5" fill="none"/></svg><span>Ajouter des photos</span><input type="file" id="f-photo" accept="image/*" multiple hidden></label>
+    </div>
       </div>
     </div>
     <label class="full">Notes<input id="f-notes" placeholder="Table, mains marquantes…"></label>
@@ -191,8 +188,8 @@
 </div></div>
 
 <div class="sheet viewer" id="phs" role="dialog" aria-modal="true" aria-label="Photo de la session"><div class="panel">
-  <img id="phsimg" alt="Photo de la session">
-  <div class="acts"><button class="btn pri" id="phsx">Fermer</button></div>
+  <div class="phstage"><img id="phsimg" alt="Photo de la session"><button type="button" class="phnav prev" id="phsp" aria-label="Photo précédente">‹</button><button type="button" class="phnav next" id="phsn" aria-label="Photo suivante">›</button></div>
+  <div class="acts"><span class="m sp" id="phsc"></span><button class="btn ghost" id="phsd">Retirer la photo</button><button class="btn pri" id="phsx">Fermer</button></div>
 </div></div>
 
 <div class="toast" id="toast"><span id="tmsg"></span><button id="undo">Annuler</button></div>
