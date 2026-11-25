@@ -6,6 +6,7 @@ import { THEMES, applyTheme, initials, sourceFromFile, defaultCrop, clampCrop, d
 import { liveTotals, finishLive, clock } from './live.js';
 
 const $ = id => document.getElementById(id);
+const APP_VERSION = 9; // à garder en phase avec VERSION dans sw.js
 let P = {}, LIVE = null, S = [], filter = 'all', editing = null, ftype = 'cash', lastDel = null, tt, shot = null, stored = true;
 const data = () => S;
 const view = () => sortByDate(data().filter(s => filter === 'all' || s.type === filter));
@@ -251,7 +252,7 @@ function renderProfile() {
   draw();
 }
 const saveProfile = () => { db.setProfile(P).catch(() => toast('Paramètres non enregistrés sur cet appareil.')); renderProfile(); };
-$('prof').onclick = () => { $('pfname').value = P.name || ''; $('pfs').classList.add('on'); };
+$('prof').onclick = () => { $('pfname').value = P.name || ''; $('pfver').textContent = 'Version ' + APP_VERSION; $('pfs').classList.add('on'); };
 $('pfclose').onclick = () => $('pfs').classList.remove('on');
 $('pfs').addEventListener('click', e => { if (e.target.id === 'pfs') $('pfs').classList.remove('on'); });
 $('pfname').onchange = () => { P = { ...P, name: $('pfname').value.trim() }; saveProfile(); };
@@ -360,6 +361,39 @@ $('lv-drop').onclick = () => {
 };
 document.addEventListener('visibilitychange', () => { if (!document.hidden && LIVE) renderLive(); });
 
+/* ---------- Fenêtres : glisser vers le bas pour fermer ---------- */
+function closeSheet(id) {
+  if (id === 'sh') return closeForm();
+  if (id === 'crs') CR = null;
+  $(id).classList.remove('on');
+}
+document.querySelectorAll('.sheet').forEach(sh => {
+  const panel = sh.querySelector('.panel');
+  panel.insertAdjacentHTML('afterbegin', '<div class="grab" aria-hidden="true"></div>');
+  let y0 = null, dy = 0, t0 = 0;
+  panel.addEventListener('touchstart', e => {
+    const t = e.target;
+    // Pas de glissement depuis un champ, le curseur de zoom ou la zone de recadrage, ni si le contenu est défilé
+    if (e.touches.length !== 1 || panel.scrollTop > 0 || t.closest('input,textarea,select,.crop,.pick')) { y0 = null; return; }
+    y0 = e.touches[0].clientY; dy = 0; t0 = Date.now(); panel.style.transition = 'none';
+  }, { passive: true });
+  panel.addEventListener('touchmove', e => {
+    if (y0 == null) return;
+    dy = Math.max(0, e.touches[0].clientY - y0);
+    if (dy > 0) { panel.style.transform = `translateY(${dy}px)`; sh.style.background = `rgba(0,0,0,${0.45 * Math.max(0, 1 - dy / 400)})`; }
+  }, { passive: true });
+  const end = () => {
+    if (y0 == null) return;
+    const fast = dy > 40 && dy / Math.max(1, Date.now() - t0) > 0.6;
+    panel.style.transition = 'transform .2s ease'; y0 = null;
+    if (dy > 120 || fast) {
+      panel.style.transform = 'translateY(100%)';
+      setTimeout(() => { closeSheet(sh.id); panel.style.transition = panel.style.transform = sh.style.background = ''; }, 180);
+    } else { panel.style.transform = ''; sh.style.background = ''; }
+  };
+  panel.addEventListener('touchend', end); panel.addEventListener('touchcancel', end);
+});
+
 /* ---------- Installation ---------- */
 let deferred = null;
 const standalone = matchMedia('(display-mode: standalone)').matches || navigator.standalone;
@@ -369,7 +403,16 @@ if (!standalone && /iphone|ipad|ipod/i.test(navigator.userAgent)) {
   $('instmsg').textContent = 'Pour l’installer : touchez Partager, puis « Sur l’écran d’accueil ».';
   $('instbtn').hidden = true; $('inst').classList.add('on');
 }
-if ('serviceWorker' in navigator) addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+if ('serviceWorker' in navigator) {
+  // Quand une nouvelle version prend la main, on recharge une fois pour l'afficher tout de suite
+  const hadController = !!navigator.serviceWorker.controller;
+  let reloaded = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => { if (hadController && !reloaded && !LIVE_EDITING()) { reloaded = true; location.reload(); } });
+  addEventListener('load', () => navigator.serviceWorker.register('sw.js').then(r => r.update()).catch(() => {}));
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) navigator.serviceWorker.getRegistration().then(r => r?.update()).catch(() => {}); });
+}
+// Ne pas recharger pendant une saisie
+function LIVE_EDITING() { return [...document.querySelectorAll('.sheet.on')].length > 0 || !$('lv-fr').hidden || !$('lv-fe').hidden; }
 
 /* ---------- Démarrage ---------- */
 renderProfile();

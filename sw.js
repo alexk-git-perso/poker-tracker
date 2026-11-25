@@ -1,5 +1,7 @@
-// Hors ligne : l'appli est mise en cache à l'installation. Changer VERSION à chaque mise en ligne.
-const VERSION = 'poker-v8';
+// Hors ligne. Stratégie « réseau d'abord » : en ligne on charge toujours la dernière version,
+// hors ligne on sert la copie en cache. Changer VERSION à chaque mise en ligne.
+const VERSION = 'poker-v9';
+const FONTS = 'poker-fonts';
 const SHELL = [
   './', 'index.html', 'manifest.webmanifest', 'css/app.css',
   'js/app.js', 'js/db.js', 'js/stats.js', 'js/share.js', 'js/format.js', 'js/profile.js', 'js/live.js',
@@ -7,20 +9,20 @@ const SHELL = [
 ];
 
 self.addEventListener('install', e => {
-  e.waitUntil(caches.open(VERSION).then(c => c.addAll(SHELL)).then(() => self.skipWaiting()));
+  // cache: 'reload' contourne le cache HTTP du navigateur (sinon on pourrait remettre en cache d'anciens fichiers)
+  e.waitUntil(caches.open(VERSION).then(c => c.addAll(SHELL.map(u => new Request(u, { cache: 'reload' })))).then(() => self.skipWaiting()));
 });
 
 self.addEventListener('activate', e => {
-  e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== VERSION).map(k => caches.delete(k)))).then(() => self.clients.claim()));
+  e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== VERSION && k !== FONTS).map(k => caches.delete(k)))).then(() => self.clients.claim()));
 });
 
 self.addEventListener('fetch', e => {
   const req = e.request;
   if (req.method !== 'GET') return;
   const url = new URL(req.url);
-  // Polices Google : mises en cache au premier chargement
   if (url.host === 'fonts.googleapis.com' || url.host === 'fonts.gstatic.com') {
-    e.respondWith(caches.open(VERSION + '-fonts').then(async c => {
+    e.respondWith(caches.open(FONTS).then(async c => {
       const hit = await c.match(req);
       if (hit) return hit;
       const res = await fetch(req); c.put(req, res.clone()); return res;
@@ -28,9 +30,8 @@ self.addEventListener('fetch', e => {
     return;
   }
   if (url.origin !== location.origin) return;
-  // Fichiers de l'appli : cache d'abord, réseau en secours
-  e.respondWith(caches.match(req, { ignoreSearch: true }).then(hit => hit || fetch(req).then(res => {
+  e.respondWith(fetch(req, { cache: 'no-cache' }).then(res => {
     if (res.ok) { const copy = res.clone(); caches.open(VERSION).then(c => c.put(req, copy)); }
     return res;
-  }).catch(() => caches.match('index.html'))));
+  }).catch(async () => (await caches.match(req, { ignoreSearch: true })) || (req.mode === 'navigate' ? caches.match('index.html') : Response.error())));
 });
