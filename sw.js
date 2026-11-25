@@ -1,10 +1,11 @@
 // Hors ligne. Stratégie « réseau d'abord » : en ligne on charge toujours la dernière version,
-// hors ligne on sert la copie en cache. Changer VERSION à chaque mise en ligne.
-const VERSION = 'poker-v10';
+// hors ligne on sert la copie en cache. La version vient de js/version.js (node tools/bump.mjs).
+importScripts('js/version.js');
+const VERSION = 'poker-' + self.APP_VERSION;
 const FONTS = 'poker-fonts';
 const SHELL = [
   './', 'index.html', 'manifest.webmanifest', 'css/app.css',
-  'js/app.js', 'js/db.js', 'js/stats.js', 'js/share.js', 'js/format.js', 'js/profile.js', 'js/live.js',
+  'js/version.js', 'js/app.js', 'js/db.js', 'js/stats.js', 'js/share.js', 'js/format.js', 'js/profile.js', 'js/live.js',
   'icons/icon.svg', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png',
 ];
 

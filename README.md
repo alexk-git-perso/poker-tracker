@@ -49,4 +49,4 @@ node --test
 ## Mise en ligne
 
 N'importe quel hébergement statique en HTTPS convient (GitHub Pages, Netlify, Cloudflare Pages).
-Pensez à changer `VERSION` dans `sw.js` à chaque mise en ligne pour que les téléphones récupèrent la nouvelle version.
+Avant chaque mise en ligne : `node tools/bump.mjs` (version majeur.date.mineur, affichée en bas de l'accueil et dans les Paramètres ; `--major` pour passer à la version majeure suivante).

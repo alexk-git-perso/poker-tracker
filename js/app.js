@@ -6,7 +6,7 @@ import { THEMES, applyTheme, initials, sourceFromFile, defaultCrop, clampCrop, d
 import { liveTotals, finishLive, clock } from './live.js';
 
 const $ = id => document.getElementById(id);
-const APP_VERSION = 10; // à garder en phase avec VERSION dans sw.js
+const APP_VERSION = self.APP_VERSION || '?';
 let P = {}, LIVE = null, S = [], filter = 'all', editing = null, ftype = 'cash', lastDel = null, tt, shot = null, stored = true;
 const data = () => S;
 const view = () => sortByDate(data().filter(s => filter === 'all' || s.type === filter));
@@ -440,6 +440,7 @@ if ('serviceWorker' in navigator) {
 function LIVE_EDITING() { return [...document.querySelectorAll('.sheet.on')].length > 0 || !$('lv-fr').hidden || !$('lv-fe').hidden; }
 
 /* ---------- Démarrage ---------- */
+$('ver').textContent = 'Version ' + APP_VERSION;
 renderProfile();
 render();
 db.getLive().then(l => { LIVE = l || null; renderLive(); }).catch(() => {});

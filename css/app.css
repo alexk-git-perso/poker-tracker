@@ -135,3 +135,4 @@ summary{cursor:pointer;min-height:44px;display:flex;align-items:center}
 @media(min-width:620px){.grab{display:none}}
 html.modal,html.modal body{overflow:hidden;overscroll-behavior:none}
 .sheet,.panel{overscroll-behavior:contain}
+.ver{font-size:13px;color:var(--mute);margin:8px 0 0;font-variant-numeric:tabular-nums}
