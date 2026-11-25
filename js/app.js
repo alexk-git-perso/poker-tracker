@@ -2,11 +2,10 @@ import * as db from './db.js';
 import { summary, byGroup, byMonth, variance, cumulative, sortByDate, profitOf } from './stats.js';
 import { esc, eur, fmtD, fmtM, today, uid } from './format.js';
 import { card, shareImage, canShareFiles, download } from './share.js';
-import { DEMO } from './demo.js';
 
 const $ = id => document.getElementById(id);
 let S = [], filter = 'all', editing = null, ftype = 'cash', lastDel = null, tt, shot = null, stored = true;
-const data = () => (S.length ? S : DEMO);
+const data = () => S;
 const view = () => sortByDate(data().filter(s => filter === 'all' || s.type === filter));
 const label = () => (filter === 'cash' ? 'Bilan cash game' : filter === 'tournoi' ? 'Bilan tournois' : 'Mon bilan poker');
 const cls = v => (v == null ? '' : v >= 0 ? 'pos' : 'neg');
@@ -14,7 +13,6 @@ const cls = v => (v == null ? '' : v >= 0 ? 'pos' : 'neg');
 /* ---------- Rendu ---------- */
 function render() {
   const L = view(), k = summary(L), all = data();
-  $('demo').hidden = !!S.length;
   $('tot').textContent = eur(k.profit, true);
   $('sub').textContent = k.n ? `sur ${k.n} session${k.n > 1 ? 's' : ''}${k.h ? ' · ' + k.h.toLocaleString('fr-FR') + ' h jouées' : ''}` : 'aucune session';
 
@@ -147,7 +145,13 @@ $('frm').onsubmit = e => {
   o.buyin ||= 0; o.cashout ||= 0;
   if (ftype !== 'tournoi') { o.place = null; o.joueurs = null; }
   S = editing ? S.map(s => (s.id === editing ? o : s)) : S.concat(o);
-  persistOne(o); closeForm(); render();
+  persistOne(o); closeForm();
+  // Montrer la session enregistrée : onglet Sessions, filtre compatible, ligne mise en évidence
+  showTab('tab-sessions');
+  if (filter !== 'all' && filter !== o.type) document.querySelector('#flt [data-f=all]').click(); else render();
+  const row = [...document.querySelectorAll('.row')].find(r => r.dataset.id === o.id);
+  if (row) { row.classList.add('new'); row.scrollIntoView({ block: 'center', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' }); setTimeout(() => row.classList.remove('new'), 2000); }
+  toast(editing ? 'Session modifiée.' : 'Session ajoutée.');
   if (S.length === 1) db.persist();
 };
 function toast(m, undo) {
@@ -225,4 +229,10 @@ if ('serviceWorker' in navigator) addEventListener('load', () => navigator.servi
 
 /* ---------- Démarrage ---------- */
 render();
-db.all().then(rows => { S = rows; render(); }).catch(fail);
+db.all().then(rows => {
+  // Ancienne version : retire toute session d'exemple qui aurait été enregistrée, sans toucher aux vraies
+  const demo = rows.filter(s => s.demo || /^demo\d+$/.test(s.id));
+  S = rows.filter(s => !demo.includes(s));
+  if (demo.length) demo.forEach(s => db.remove(s.id).catch(fail));
+  render();
+}).catch(fail);

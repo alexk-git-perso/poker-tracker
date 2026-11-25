@@ -21,7 +21,7 @@ js/app.js             interface
 js/db.js              base locale IndexedDB
 js/stats.js           calculs (fonctions pures, testées)
 js/share.js           image à partager
-js/format.js, demo.js utilitaires, exemples affichés tant qu'il n'y a pas de données
+js/format.js          utilitaires
 sw.js                 service worker (hors ligne)
 manifest.webmanifest  installation
 tests/                tests des calculs

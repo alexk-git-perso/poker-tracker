@@ -30,21 +30,20 @@
 </div></header>
 
 <main class="wrap">
-  <div class="stats" id="stats"></div>
-
   <div class="tabs" role="tablist" aria-label="Vues">
     <button role="tab" id="tab-sessions" aria-controls="v-sessions" aria-selected="true">Sessions</button>
     <button role="tab" id="tab-analyse" aria-controls="v-analyse" aria-selected="false">Analyse</button>
   </div>
 
   <section id="v-sessions" role="tabpanel" aria-labelledby="tab-sessions">
-    <h2>Historique <span style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" id="shareAll">Partager mon bilan</button><button class="btn ghost" id="bk">Sauvegarde</button></span></h2>
-    <p class="note" id="demo" hidden>Exemples fictifs pour montrer l’appli. Ils disparaissent dès que vous ajoutez votre première session.</p>
+    <h2>Dernières sessions <span style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" id="shareAll">Partager mon bilan</button><button class="btn ghost" id="bk">Sauvegarde</button></span></h2>
     <p class="note" id="sync">Vos sessions restent uniquement sur cet appareil. Rien n’est envoyé en ligne.</p>
     <div class="list" id="list"></div>
   </section>
 
   <section id="v-analyse" role="tabpanel" aria-labelledby="tab-analyse" hidden>
+    <h2>Chiffres clés</h2>
+    <div class="stats" id="stats" style="margin-top:0"></div>
     <h2>Variance</h2>
     <div class="vgrid" id="var"></div>
     <p class="hint">Le downswing est la plus forte baisse de votre bénéfice cumulé depuis un sommet. L’écart-type mesure de combien une session s’écarte en général de votre moyenne.</p>

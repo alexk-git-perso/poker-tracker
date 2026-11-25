@@ -89,3 +89,5 @@ summary{cursor:pointer;min-height:44px;display:flex;align-items:center}
 .inst.on{display:flex}
 .inst .btn{height:38px;background:var(--on);color:#0d4a33;border:0}
 [hidden]{display:none!important}
+.row.new{border-color:var(--brass);box-shadow:0 0 0 3px color-mix(in srgb,var(--brass) 45%,transparent)}
+.tabs{position:sticky;top:0;background:var(--bg);z-index:3;margin-top:0;padding-top:6px}
