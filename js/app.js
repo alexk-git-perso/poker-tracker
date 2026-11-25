@@ -139,7 +139,7 @@ function setType(t) {
   document.querySelectorAll('#ty button').forEach(b => b.setAttribute('aria-pressed', b.dataset.t === t));
   $('tsec').hidden = t !== 'tournoi'; live();
 }
-document.querySelectorAll('#ty button').forEach(b => b.onclick = () => setType(b.dataset.t));
+document.querySelectorAll('#ty button').forEach(b => b.onclick = () => { setType(b.dataset.t); scheduleSave(); });
 function live() {
   const el = $('live');
   if (!$('f-buyin').value && !$('f-cashout').value) { el.textContent = ''; return; }
@@ -147,32 +147,78 @@ function live() {
   el.textContent = t('Résultat : {p}', { p: eur(p, true) }); el.className = 'live ' + cls(p);
 }
 ['f-buyin', 'f-cashout'].forEach(i => $(i).oninput = live);
-let openedNew = false;
+let openedNew = false, created = false, orig = null, lastSaved = '', photosLoading = false, saveT = null;
+// Empreinte de la saisie : sert à savoir s'il reste quelque chose à enregistrer.
+const snap = () => JSON.stringify([ftype, F.map(f => $('f-' + f).value.trim()), formHand, formPhotos.map(p => p.id)]);
+function formBtns() {
+  $('ft').textContent = t(openedNew ? 'Nouvelle session' : 'Modifier la session');
+  $('del').hidden = !editing;
+  $('golive').hidden = $('golivehint').hidden = !openedNew || !!LIVE;
+}
 function openForm(s) {
-  editing = s ? s.id : null; openedNew = !s;
-  $('ft').textContent = t(editing ? 'Modifier la session' : 'Nouvelle session');
-  $('del').hidden = $('shareOne').hidden = !editing;
-  $('golive').hidden = $('golivehint').hidden = !!editing || !!LIVE;
+  clearTimeout(saveT);
+  editing = s ? s.id : null; openedNew = !s; created = false; orig = s ? JSON.parse(JSON.stringify(s)) : null;
   const last = sortByDate(S).pop();
   const v = s || { date: today(), lieu: last?.lieu || '', jeu: last?.jeu || '', type: last?.type || 'cash' };
   F.forEach(f => $('f-' + f).value = v[f] ?? '');
   setType(v.type || 'cash');
   formHand = (v.hand || []).filter(isCard); renderHandBtn();
   setFormPhotos([]);
-  const ids = photosOf(v);
+  const ids = photosOf(v); photosLoading = ids.length > 0;
   if (ids.length) Promise.all(ids.map(id => db.getPhoto(id).then(blob => blob && { id, blob, isNew: false }).catch(() => null)))
-    .then(L => { if (editing === s.id) setFormPhotos(L.filter(Boolean)); });
+    .then(L => { if (editing === s.id) { setFormPhotos(L.filter(Boolean)); lastSaved = snap(); } photosLoading = false; });
+  lastSaved = snap(); formBtns();
   $('sh').classList.add('on');
 }
-const closeForm = () => { $('sh').classList.remove('on'); };
+// Enregistrement automatique et silencieux, dès que les champs obligatoires sont remplis.
+// Renvoie false s'il reste une saisie qui ne peut pas être enregistrée.
+function flushSave() {
+  clearTimeout(saveT); saveT = null;
+  if (!$('sh').classList.contains('on') || photosLoading) return true;
+  if (snap() === lastSaved) return true;
+  if (!$('frm').checkValidity()) return false;
+  if (!editing) created = true;
+  saveForm(); lastSaved = snap(); formBtns(); render();
+  return true;
+}
+const scheduleSave = () => { clearTimeout(saveT); saveT = setTimeout(flushSave, 400); };
+$('frm').addEventListener('input', scheduleSave);
+$('frm').addEventListener('change', scheduleSave);
+// Fermeture (glisser vers le bas, retour, fond, Échap) : confirmation si une saisie incomplète serait perdue.
+function closeForm() {
+  if (!$('sh').classList.contains('on')) return;
+  if (flushSave()) return endForm();
+  askConfirm({
+    title: t('Abandonner la saisie ?'), desc: t('Des champs obligatoires sont vides : cette saisie ne peut pas être enregistrée.'),
+    ok: t('Abandonner'), no: t('Continuer la saisie'), onOk: endForm,
+  });
+}
+function endForm() {
+  clearTimeout(saveT); $('sh').classList.remove('on');
+  if (!created) return;
+  const o = S.find(x => x.id === editing); if (!o) return;
+  // Nouvelle session : la montrer dans la liste
+  showTab('tab-sessions');
+  if (filter !== 'all' && filter !== o.type) document.querySelector('#flt [data-f=all]').click(); else render();
+  const row = [...document.querySelectorAll('.row')].find(r => r.dataset.id === o.id);
+  if (row) { row.classList.add('new'); row.scrollIntoView({ block: 'center', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' }); setTimeout(() => row.classList.remove('new'), 2000); }
+}
+// Annuler : revient à l'état d'ouverture (ou retire la session créée).
+function dropCreated() { if (created && editing) { S = S.filter(x => x.id !== editing); db.remove(editing).catch(fail); created = false; } }
+$('cancel').onclick = () => {
+  clearTimeout(saveT);
+  if (openedNew) dropCreated();
+  else if (orig) { S = S.map(x => (x.id === orig.id ? orig : x)); persistOne(orig); }
+  $('sh').classList.remove('on'); render();
+};
 $('add').onclick = () => openForm();
-$('cancel').onclick = closeForm;
 $('list').onclick = e => {
   const r = e.target.closest('.row'); if (!r) return;
   const s = S.find(x => x.id === r.dataset.id);
   openForm(s || null);
 };
-// Construit et enregistre la session depuis la fiche, sans la fermer.
+// Entrée dans un champ : enregistre sans fermer.
+$('frm').onsubmit = e => { e.preventDefault(); flushSave(); };
 function saveForm() {
   const o = { id: editing || uid(), type: ftype };
   F.forEach(f => { const v = $('f-' + f).value.trim(); o[f] = NUM.includes(f) ? (v === '' ? null : +v) : v; });
@@ -191,25 +237,6 @@ function saveForm() {
   editing = o.id;
   return o;
 }
-// Ajout ou retrait d'une photo : enregistrement immédiat, la fiche reste ouverte.
-function autoSave() {
-  if (!$('sh').classList.contains('on')) return;
-  if (!$('frm').checkValidity()) { toast(t('Complétez la session puis enregistrez pour garder les photos.')); return; }
-  const fresh = !editing;
-  saveForm(); render();
-  if (fresh) { $('ft').textContent = t('Modifier la session'); $('del').hidden = $('shareOne').hidden = false; $('golive').hidden = $('golivehint').hidden = true; }
-  toast(t(fresh ? 'Session ajoutée.' : 'Session enregistrée.'));
-}
-$('frm').onsubmit = e => {
-  e.preventDefault();
-  const o = saveForm(); closeForm();
-  // Montrer la session enregistrée : onglet Sessions, filtre compatible, ligne mise en évidence
-  showTab('tab-sessions');
-  if (filter !== 'all' && filter !== o.type) document.querySelector('#flt [data-f=all]').click(); else render();
-  const row = [...document.querySelectorAll('.row')].find(r => r.dataset.id === o.id);
-  if (row) { row.classList.add('new'); row.scrollIntoView({ block: 'center', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' }); setTimeout(() => row.classList.remove('new'), 2000); }
-  toast(t(openedNew ? 'Session ajoutée.' : 'Session modifiée.'));
-};
 function toast(m, undo) {
   $('tmsg').textContent = m; $('undo').hidden = !undo; $('toast').classList.add('on');
   clearTimeout(tt); tt = setTimeout(() => $('toast').classList.remove('on'), undo ? 6000 : 2000);
@@ -219,7 +246,7 @@ function deleteSession(id) {
   S = S.filter(s => s.id !== id); db.remove(id).catch(fail);
   render(); toast(t('Session supprimée.'), true);
 }
-$('del').onclick = () => { const id = editing; closeForm(); deleteSession(id); };
+$('del').onclick = () => { if (editing) askDelete(editing, () => { clearTimeout(saveT); $('sh').classList.remove('on'); }); };
 
 // Appui long sur une ligne de la liste : suppression après confirmation.
 let pressT = null, pressRow = null, pressXY = null, pressFired = false;
@@ -236,21 +263,32 @@ $('list').addEventListener('contextmenu', e => { if (e.target.closest('.row')) e
 let pressEnd = 0;
 ['pointerup', 'pointercancel'].forEach(ev => document.addEventListener(ev, () => { if (pressFired) { pressFired = false; pressEnd = Date.now(); } }, true));
 document.addEventListener('click', e => { if (Date.now() - pressEnd < 400) { pressEnd = 0; e.stopImmediatePropagation(); e.preventDefault(); } }, true);
-let delId = null;
-function askDelete(id) {
-  const s = S.find(x => x.id === id); if (!s) return;
-  delId = id;
-  $('dld').textContent = [s.lieu || t('Session'), s.date ? fmtD(s.date) : '', eur(s.cashout - s.buyin, true)].filter(Boolean).join(' · ');
-  $('dls').classList.add('on');
+// Fenêtre de confirmation générique
+let confirmOk = null;
+function askConfirm({ title, desc, ok, no, onOk }) {
+  $('dlt').textContent = title; $('dld').textContent = desc || '';
+  $('dlok').textContent = ok; $('dlx').textContent = no || t('Annuler');
+  confirmOk = onOk; $('dls').classList.add('on');
 }
-$('dlx').onclick = () => $('dls').classList.remove('on');
-$('dlok').onclick = () => { $('dls').classList.remove('on'); if (delId) deleteSession(delId); delId = null; };
+function askDelete(id, after) {
+  const s = S.find(x => x.id === id); if (!s) return;
+  askConfirm({
+    title: t('Supprimer cette session ?'), ok: t('Supprimer'),
+    desc: [s.lieu || t('Session'), s.date ? fmtD(s.date) : '', eur(s.cashout - s.buyin, true)].filter(Boolean).join(' · '),
+    onOk: () => { after?.(); deleteSession(id); },
+  });
+}
+$('dlx').onclick = () => { confirmOk = null; $('dls').classList.remove('on'); };
+$('dlok').onclick = () => { const f = confirmOk; confirmOk = null; $('dls').classList.remove('on'); f?.(); };
 $('undo').onclick = () => { if (lastDel) { S = S.concat(lastDel); persistOne(lastDel); lastDel = null; render(); } $('toast').classList.remove('on'); };
 
 /* ---------- Fenêtres : fermeture ---------- */
 const sheets = ['sh', 'bks', 'shs', 'dls'];
 sheets.forEach(id => $(id).addEventListener('click', e => { if (e.target.id === id) id === 'sh' ? closeForm() : $(id).classList.remove('on'); }));
-document.addEventListener('keydown', e => { if (e.key === 'Escape') { if ($('sh').classList.contains('on')) closeForm(); ['bks', 'shs', 'pfs', 'crs', 'hds', 'phs', 'dls'].forEach(id => $(id).classList.remove('on')); } });
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Escape') return;
+  const top = [...document.querySelectorAll('.sheet.on')].pop(); if (top) closeSheet(top.id);
+});
 
 /* ---------- Sauvegarde ---------- */
 $('bk').onclick = () => { $('bktxt').value = JSON.stringify(S, null, 1); $('bkmsg').textContent = ''; $('bks').classList.add('on'); };
@@ -304,7 +342,11 @@ async function share(kind, s) {
   $('shmsg').textContent = t(native ? 'Envoyez-la directement à vos amis (WhatsApp, Messages…).' : 'Téléchargez l’image, puis envoyez-la à vos amis.');
   $('shs').classList.add('on');
 }
-$('shareOne').onclick = () => { const s = S.find(q => q.id === editing); if (s) { closeForm(); share('one', s); } };
+$('shareOne').onclick = () => {
+  const s = flushSave() && S.find(q => q.id === editing);
+  if (!s) { $('frm').reportValidity(); toast(t('Indiquez au moins le buy-in et le cash-out pour partager.')); return; }
+  endForm(); share('one', s);
+};
 $('shareAll').onclick = () => share('all');
 $('shclose').onclick = () => $('shs').classList.remove('on');
 $('shgo').onclick = async () => {
@@ -415,7 +457,8 @@ $('golive').onclick = () => {
   if (!(amt > 0)) { $('f-buyin').focus(); $('f-buyin').reportValidity?.(); toast(t('Indiquez le buy-in de départ.')); return; }
   const now = Date.now();
   LIVE = { id: uid(), type: ftype, lieu: $('f-lieu').value.trim(), jeu: $('f-jeu').value.trim(), notes: $('f-notes').value.trim(), start: now, buyins: [{ amount: amt, at: now }] };
-  saveLive(); closeForm(); lvShow('main'); renderLive(); scrollTo({ top: 0 });
+  dropCreated(); clearTimeout(saveT); $('sh').classList.remove('on'); render();
+  saveLive(); lvShow('main'); renderLive(); scrollTo({ top: 0 });
   toast(t('Session démarrée. Bonne partie !'));
 };
 $('lv-rebuy').onclick = () => { const last = LIVE.buyins[LIVE.buyins.length - 1]; $('lv-amt').value = last ? last.amount : ''; lvShow('rebuy'); };
@@ -461,7 +504,7 @@ function setFormPhotos(L) {
 }
 $('f-phs').onclick = e => {
   const x = e.target.closest('[data-x]'), v = e.target.closest('[data-i]');
-  if (x) { setFormPhotos(formPhotos.filter((_, i) => i !== +x.dataset.x)); autoSave(); }
+  if (x) { setFormPhotos(formPhotos.filter((_, i) => i !== +x.dataset.x)); flushSave(); }
   else if (v) showPhoto(+v.dataset.i, true);
 };
 $('f-photo').onchange = async () => {
@@ -473,7 +516,7 @@ $('f-photo').onchange = async () => {
     try { add.push({ id: 'ph-' + uid(), blob: await sessionPhoto(f), isNew: true }); }
     catch (e) { toast(t('Cette image n’a pas pu être lue.')); }
   }
-  if (add.length) { setFormPhotos([...formPhotos, ...add]); db.persist(); autoSave(); }
+  if (add.length) { setFormPhotos([...formPhotos, ...add]); db.persist(); flushSave(); }
 };
 function showPhoto(i, open) {
   if (!formPhotos.length) { $('phs').classList.remove('on'); return; }
@@ -485,7 +528,7 @@ function showPhoto(i, open) {
 }
 $('phsp').onclick = () => showPhoto(phIdx - 1);
 $('phsn').onclick = () => showPhoto(phIdx + 1);
-$('phsd').onclick = () => { setFormPhotos(formPhotos.filter((_, i) => i !== phIdx)); showPhoto(phIdx); autoSave(); };
+$('phsd').onclick = () => { setFormPhotos(formPhotos.filter((_, i) => i !== phIdx)); showPhoto(phIdx); flushSave(); };
 (() => {
   let x0 = null;
   $('phsimg').parentElement.addEventListener('touchstart', e => { x0 = e.touches.length === 1 ? e.touches[0].clientX : null; }, { passive: true });
@@ -518,7 +561,7 @@ function openPicker(title, cards, max, done) {
   $('hdhelp').textContent = t('Choisissez la couleur, puis touchez les valeurs. {n} cartes au plus ; touchez une carte en haut pour la retirer.', { n: max });
   renderPicker(); $('hds').classList.add('on');
 }
-$('f-hand').onclick = () => openPicker('Meilleure main', formHand, 5, H => { formHand = H; renderHandBtn(); });
+$('f-hand').onclick = () => openPicker('Meilleure main', formHand, 5, H => { formHand = H; renderHandBtn(); flushSave(); });
 $('pffav').onclick = () => openPicker('Main de départ préférée', P.fav || [], 2, H => { P = { ...P, fav: H }; saveProfile(); });
 $('hdsuits').onclick = e => { const b = e.target.closest('[data-s]'); if (b) { pickSuit = b.dataset.s; renderPicker(); } };
 $('hdranks').onclick = e => { const b = e.target.closest('[data-r]'); if (b && !b.disabled && pickHand.length < pickMax) { pickHand.push(b.dataset.r + pickSuit); renderPicker(); } };
