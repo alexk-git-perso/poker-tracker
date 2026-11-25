@@ -3,6 +3,22 @@
 Appli de suivi de parties de poker, installable sur téléphone et ordinateur (PWA), qui fonctionne hors ligne.
 Les données restent **uniquement sur l'appareil** (IndexedDB) : aucun serveur, aucun compte.
 
+## Aperçu
+
+Captures réalisées avec des données fictives, sur un écran de téléphone Android en mode sombre.
+
+| Accueil | Session en direct | Analyse |
+|:---:|:---:|:---:|
+| <img src="docs/screenshots/1-accueil.png" width="240" alt="Accueil : bénéfice cumulé et dernières sessions"> | <img src="docs/screenshots/2-session-en-direct.png" width="240" alt="Session en direct avec chrono et recaves"> | <img src="docs/screenshots/3-analyse.png" width="240" alt="Analyse : chiffres clés, variance, par mois"> |
+
+| Paramètres | Meilleure main | Partage |
+|:---:|:---:|:---:|
+| <img src="docs/screenshots/4-parametres.png" width="240" alt="Paramètres : photo, main préférée, nom, couleur"> | <img src="docs/screenshots/5-meilleure-main.png" width="240" alt="Sélecteur de cartes"> | <img src="docs/screenshots/6-partage.png" width="240" alt="Choix de l'image à partager"> |
+
+Images à partager (version détaillée et version photo) :
+
+<img src="docs/screenshots/image-detaillee.jpg" width="270" alt="Image détaillée d'une session"> <img src="docs/screenshots/image-photo.jpg" width="270" alt="Image photo d'une session">
+
 ## Fonctions
 
 - Sessions **cash game** (par défaut) ou **tournoi** : date, lieu, jeu/limite, buy-in (recaves comprises), cash-out, durée, place finale et nombre de joueurs.
