@@ -121,7 +121,8 @@ summary{cursor:pointer;min-height:44px;display:flex;align-items:center}
 .lv-form label{color:#cfe3d7}
 .lv-form input{background:rgba(255,255,255,.95);color:#16201b;border:0}
 .lv-res{margin:0;font:700 20px Rubik,sans-serif;min-height:1.2em}
-.pick{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px;max-width:440px;margin:0 auto}
+.pick{display:grid;grid-template-columns:repeat(auto-fit,minmax(0,1fr));grid-auto-flow:column;gap:10px;max-width:520px;margin:0 auto}
+.pick button[hidden]{display:none}
 .pick button{display:grid;gap:6px;padding:6px;border-radius:16px;border:2px solid var(--line);background:var(--bg);color:var(--ink);font:600 15px Inter,sans-serif;cursor:pointer}
 .pick button img{width:100%;aspect-ratio:4/5;border-radius:10px;display:block;background:var(--felt)}
 .pick button[aria-checked=true]{border-color:var(--chip);box-shadow:0 0 0 2px var(--chip)}

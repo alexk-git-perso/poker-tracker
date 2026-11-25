@@ -7,8 +7,8 @@ const placeTxt = s => s.joueurs ? tr('{p} sur {n}', { p: ord(s.place), n: s.joue
 import { theme, initials, loadImage } from './profile.js';
 import { isCard, handName, drawCard } from './cards.js';
 
-// style : 'detail' (infos complètes) ou 'poster' (grande photo, résultat en très grand)
-export async function card(kind, payload, P = {}, style = 'detail') {
+// style : 'detail' (infos complètes), 'poster' (grande photo, résultat en très grand) ou 'album' (photos de la session)
+export async function card(kind, payload, P = {}, style = 'detail', pics = []) {
   const th = theme(P), photo = await loadImage(P.photo), name = (P.name || '').trim();
   try { await Promise.all(['800 120px Rubik', '700 40px Rubik', '500 34px Inter'].map(f => document.fonts.load(f))); } catch (e) { /* polices système */ }
   const W = 1080, H = 1350, c = document.createElement('canvas'); c.width = W; c.height = H;
@@ -32,6 +32,11 @@ export async function card(kind, payload, P = {}, style = 'detail') {
     T(r[0], 100, yy, big ? '500 44px Inter' : '500 36px Inter', '#cfe3d7'); T(r[1], 980, yy, big ? '700 60px Rubik' : '700 42px Rubik', '#f3efe4', 'right');
   });
 
+  if (style === 'album') {
+    const imgs = (await Promise.all(pics.slice(0, 5).map(b => createImageBitmap(b).catch(() => null)))).filter(Boolean);
+    if (!imgs.length || kind !== 'one') return null;
+    album(x, payload, imgs, { th, photo, name, chip, T, fit }); return new Promise(ok => c.toBlob(ok, 'image/png'));
+  }
   if (style === 'poster') { poster(x, kind, payload, { th, photo, name, chip, T, fit }); return new Promise(ok => c.toBlob(ok, 'image/png')); }
   if (photo) {
     // Photo du joueur en médaillon, cerclée de laiton
@@ -144,6 +149,50 @@ function poster(x, kind, payload, { th, photo, name, chip, T, fit }) {
   x.fillStyle = 'rgba(255,255,255,.2)'; x.fillRect(540, 1030 + dy, 2, hd ? 130 : 150);
   cols.forEach((c, i) => { const px = i ? 790 : 290; T(c[0], px, 1070 + dy, '500 38px Inter', '#cfe3d7', 'center'); T(c[1], px, 1150 + dy - (hd ? 10 : 0), fit(c[1], '700 SZpx Rubik', 68, 440), '#f3efe4', 'center'); });
   if (foot) T(foot, cx, hd ? 1268 : 1250, fit(foot, '500 SZpx Inter', 34, 900), '#cfe3d7', 'center');
+}
+
+// Mosaïque des photos de la session en haut, résumé en bas.
+function album(x, s, imgs, { th, photo, name, chip, T, fit }) {
+  const X0 = 70, Y0 = 70, W = 940, H = 800, g = 14, n = imgs.length;
+  const half = (W - g) / 2, third = (W - 2 * g) / 3, hh = (H - g) / 2;
+  const R = n === 1 ? [[X0, Y0, W, H]]
+    : n === 2 ? [[X0, Y0, half, H], [X0 + half + g, Y0, half, H]]
+    : n === 3 ? [[X0, Y0, W * .6, H], [X0 + W * .6 + g, Y0, W * .4 - g, hh], [X0 + W * .6 + g, Y0 + hh + g, W * .4 - g, hh]]
+    : n === 4 ? [[X0, Y0, half, hh], [X0 + half + g, Y0, half, hh], [X0, Y0 + hh + g, half, hh], [X0 + half + g, Y0 + hh + g, half, hh]]
+    : [[X0, Y0, half, hh], [X0 + half + g, Y0, half, hh], [X0, Y0 + hh + g, third, hh], [X0 + third + g, Y0 + hh + g, third, hh], [X0 + 2 * (third + g), Y0 + hh + g, third, hh]];
+  imgs.forEach((im, i) => {
+    const [rx, ry, rw, rh] = R[i], k = Math.max(rw / im.width, rh / im.height), sw = rw / k, sh = rh / k;
+    x.save(); x.beginPath(); x.roundRect(rx, ry, rw, rh, 22); x.clip();
+    x.drawImage(im, (im.width - sw) / 2, (im.height - sh) / 2, sw, sh, rx, ry, rw, rh); x.restore();
+  });
+  const p = profitOf(s), t = s.type === 'tournoi', ay = 985;
+  // Joueur : photo, initiales ou jeton
+  if (photo) {
+    x.save(); x.beginPath(); x.arc(140, ay, 62, 0, 7); x.clip(); x.drawImage(photo, 78, ay - 62, 124, 124); x.restore();
+    x.strokeStyle = '#e6c36a'; x.lineWidth = 6; x.beginPath(); x.arc(140, ay, 65, 0, 7); x.stroke();
+  } else if (initials(name)) {
+    chip(140, ay, 64, th.accent); x.fillStyle = th.accent; x.beginPath(); x.arc(140, ay, 41, 0, 7); x.fill();
+    x.font = '800 44px Rubik, sans-serif'; x.fillStyle = '#fdfbf6'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(initials(name), 140, ay + 3); x.textBaseline = 'alphabetic';
+  } else chip(140, ay, 64, th.accent);
+  const fitS = (txt, f0, max, w) => { let z = max; do { x.font = f0.replace('SZ', z); } while (x.measureText(txt).width > w && (z -= 2) > 18); return f0.replace('SZ', z); };
+  const sub = [t ? tr('Tournoi') : tr('Cash game'), s.lieu, s.jeu].filter(Boolean).join(' · ');
+  const when = [fmtD(s.date), s.duree ? dur(s) : '', t && s.place ? placeTxt(s) : ''].filter(Boolean).join(' · ');
+  if (name) {
+    T(name, 230, ay - 22, fitS(name, '700 SZpx Rubik', 50, 780), '#f3efe4');
+    T(sub, 230, ay + 22, fitS(sub, '500 SZpx Inter', 32, 780), '#cfe3d7');
+    T(when, 230, ay + 62, fitS(when, '500 SZpx Inter', 28, 780), 'rgba(207,227,215,.75)');
+  } else {
+    T(sub, 230, ay - 2, fitS(sub, '600 SZpx Inter', 38, 780), '#f3efe4');
+    T(when, 230, ay + 44, fitS(when, '500 SZpx Inter', 30, 780), '#cfe3d7');
+  }
+  x.fillStyle = 'rgba(255,255,255,.2)'; x.fillRect(70, 1085, 940, 2);
+  const hand = (s.hand || []).filter(isCard), big = eur(p, true);
+  T(big, 70, hand.length ? 1200 : 1235, fitS(big, '800 SZpx Rubik', hand.length ? 104 : 124, 520), p >= 0 ? '#e6c36a' : '#ff8a8f');
+  if (hand.length) { const hn = handName(hand); if (hn) T(tr('Meilleure main') + ' : ' + hn, 70, 1262, fitS(tr('Meilleure main') + ' : ' + hn, '500 SZpx Inter', 28, 520), '#cfe3d7'); }
+  const io = eur(s.buyin) + ' → ' + eur(s.cashout);
+  T(tr('Buy-in') + ' → ' + tr('Cash-out'), 1010, 1140, '500 28px Inter', 'rgba(207,227,215,.75)', 'right');
+  T(io, 1010, 1192, fitS(io, '700 SZpx Rubik', 48, 400), '#f3efe4', 'right');
+  if (hand.length) hand.forEach((c, i) => drawCard(x, c, 1010 - (hand.length - i) * 56 + 6, 1212, 50));
 }
 
 const dur = s => tr('{h} h de jeu', { h: num(s.duree) });

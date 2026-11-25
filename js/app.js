@@ -261,21 +261,28 @@ $('bkimp').onclick = () => {
 
 /* ---------- Partage en image ---------- */
 let shots = {}, pickSt = 'detail';
-try { pickSt = localStorage.getItem('poker-card') === 'poster' ? 'poster' : 'detail'; } catch (e) { /* facultatif */ }
-function pick(st) {
-  pickSt = st; shot = shots[st];
+try { pickSt = ['poster', 'album'].includes(localStorage.getItem('poker-card')) ? localStorage.getItem('poker-card') : 'detail'; } catch (e) { /* facultatif */ }
+function pick(st, auto) {
+  if (!auto) pickSt = st; shot = shots[st];
   document.querySelectorAll('#shpick [data-st]').forEach(b => b.setAttribute('aria-checked', b.dataset.st === st));
-  try { localStorage.setItem('poker-card', st); } catch (e) { /* facultatif */ }
+  if (!auto) try { localStorage.setItem('poker-card', st); } catch (e) { /* facultatif */ }
 }
 $('shpick').onclick = e => { const b = e.target.closest('[data-st]'); if (b && shots[b.dataset.st]) pick(b.dataset.st); };
 async function share(kind, s) {
   const payload = kind === 'one' ? s : { list: view(), label: label(), kindLabel: kindLabel() };
-  const [d, p] = await Promise.all([card(kind, payload, P, 'detail'), card(kind, payload, P, 'poster')]);
+  const pics = kind === 'one' ? (await Promise.all(photosOf(s).map(id => db.getPhoto(id).catch(() => null)))).filter(Boolean) : [];
+  const [d, p, a] = await Promise.all([card(kind, payload, P, 'detail'), card(kind, payload, P, 'poster'),
+    pics.length ? card(kind, payload, P, 'album', pics).catch(() => null) : null]);
   if (!d || !p) { toast(t('Image impossible à créer sur cet appareil.')); return; }
   const base = kind === 'one' ? 'poker-' + s.date : 'poker-bilan-' + today();
   shots = { detail: { blob: d, name: base + '.png' }, poster: { blob: p, name: base + '-photo.png' } };
-  document.querySelectorAll('#shpick [data-st]').forEach(b => { const im = b.querySelector('img'); if (im.src) URL.revokeObjectURL(im.src); im.src = URL.createObjectURL(shots[b.dataset.st].blob); });
-  pick(pickSt);
+  if (a) shots.album = { blob: a, name: base + '-album.png' };
+  document.querySelectorAll('#shpick [data-st]').forEach(b => {
+    const im = b.querySelector('img'), sh = shots[b.dataset.st]; if (im.src) { URL.revokeObjectURL(im.src); im.removeAttribute('src'); }
+    b.hidden = !sh; if (sh) im.src = URL.createObjectURL(sh.blob);
+  });
+  // Préférence « Album » gardée pour les sessions avec photos ; sinon on montre Photo sans l'oublier.
+  if (shots[pickSt]) pick(pickSt, true); else pick('poster', true);
   const native = canShareFiles(d);
   $('shgot').textContent = t(native ? 'Partager' : 'Télécharger');
   $('shcopy').hidden = !(window.ClipboardItem && navigator.clipboard?.write);

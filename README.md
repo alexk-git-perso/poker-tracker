@@ -23,9 +23,9 @@ Captures réalisées avec des données fictives, sur un écran de téléphone An
 |:---:|
 | <img src="docs/screenshots/8-suppression.png" width="240" alt="Confirmation de suppression d'une session"> |
 
-Images à partager (version détaillée et version photo) :
+Images à partager (version détaillée, version photo et version album avec les photos de la session) :
 
-<img src="docs/screenshots/image-detaillee.jpg" width="270" alt="Image détaillée d'une session"> <img src="docs/screenshots/image-photo.jpg" width="270" alt="Image photo d'une session">
+<img src="docs/screenshots/image-detaillee.jpg" width="270" alt="Image détaillée d'une session"> <img src="docs/screenshots/image-photo.jpg" width="270" alt="Image photo d'une session"> <img src="docs/screenshots/image-album.jpg" width="270" alt="Image album avec les photos d'une session">
 
 ## Fonctions
 
@@ -34,7 +34,7 @@ Images à partager (version détaillée et version photo) :
 - Courbe du **bénéfice cumulé**, filtre Tout / Cash / Tournoi.
 - Stats : bénéfice horaire, % de sessions gagnantes, plus gros gain et plus grosse perte, ROI et places payées en tournoi.
 - Onglet **Analyse** : bénéfice par mois, par lieu, par jeu/limite, écart-type par session, pire downswing, plus longue série perdante.
-- **Partage en image** d'une session ou du bilan (carte 1080×1350) via le partage natif du téléphone (WhatsApp, Messages…), sinon téléchargement.
+- **Partage en image** d'une session ou du bilan (carte 1080×1350) en trois versions : détaillée, photo du joueur, et album avec les photos de la session (proposée seulement si la session en a), via le partage natif du téléphone (WhatsApp, Messages…), sinon téléchargement.
 - **Meilleure main** d'une session : sélecteur de cartes visuel, nom de la main détecté (Full, Couleur…), affichée dans l'historique et sur les images.
 - **Photos de session** : jusqu'à 5 photos par session, ajoutées en une fois ou une par une. Elles sont réduites à 1600 px en JPEG et stockées localement dans IndexedDB, et s'ouvrent en grand avec navigation par glissement ou flèches. L'appli demande un stockage persistant, et l'espace utilisé est affiché dans « À propos ». Les photos ne sont pas incluses dans la sauvegarde JSON.
 - **Gestes** : balayer horizontalement pour passer de Sessions à Analyse, appui long sur une session de la liste pour la supprimer (avec confirmation et « Annuler »).
