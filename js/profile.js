@@ -16,16 +16,32 @@ export function applyTheme(p) {
 
 export const initials = name => (name || '').trim().split(/\s+/).slice(0, 2).map(w => w[0]?.toUpperCase() || '').join('');
 
-// Photo : recadrée au carré et réduite à 320 px (JPEG) pour rester légère dans la base locale.
-export async function photoFromFile(file) {
+// Photo : on garde l'original réduit (pour pouvoir recadrer plus tard) et la version recadrée 320 px.
+export async function sourceFromFile(file) {
   const url = URL.createObjectURL(file);
   try {
     const img = await new Promise((ok, ko) => { const i = new Image(); i.onload = () => ok(i); i.onerror = ko; i.src = url; });
-    const s = Math.min(img.naturalWidth, img.naturalHeight), N = 320;
-    const c = document.createElement('canvas'); c.width = c.height = N;
-    c.getContext('2d').drawImage(img, (img.naturalWidth - s) / 2, (img.naturalHeight - s) / 2, s, s, 0, 0, N, N);
-    return c.toDataURL('image/jpeg', 0.85);
+    const k = Math.min(1, 1200 / Math.max(img.naturalWidth, img.naturalHeight));
+    const c = document.createElement('canvas'); c.width = Math.round(img.naturalWidth * k); c.height = Math.round(img.naturalHeight * k);
+    c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+    return c.toDataURL('image/jpeg', 0.88);
   } finally { URL.revokeObjectURL(url); }
+}
+
+// Cadrage : { cx, cy } point de l'image au centre du cercle, zoom ≥ 1 (1 = le petit côté remplit le cercle)
+export const defaultCrop = img => ({ cx: img.naturalWidth / 2, cy: img.naturalHeight / 2, zoom: 1 });
+export function clampCrop(img, c) {
+  const zoom = Math.min(5, Math.max(1, c.zoom)), half = Math.min(img.naturalWidth, img.naturalHeight) / zoom / 2;
+  return { zoom, cx: Math.min(img.naturalWidth - half, Math.max(half, c.cx)), cy: Math.min(img.naturalHeight - half, Math.max(half, c.cy)) };
+}
+export function drawCrop(ctx, img, c, N) {
+  const side = Math.min(img.naturalWidth, img.naturalHeight) / c.zoom;
+  ctx.drawImage(img, c.cx - side / 2, c.cy - side / 2, side, side, 0, 0, N, N);
+}
+export function cropToPhoto(img, c) {
+  const N = 512, cv = document.createElement('canvas'); cv.width = cv.height = N;
+  drawCrop(cv.getContext('2d'), img, c, N);
+  return cv.toDataURL('image/jpeg', 0.85);
 }
 
 export const loadImage = src => new Promise(ok => { if (!src) return ok(null); const i = new Image(); i.onload = () => ok(i); i.onerror = () => ok(null); i.src = src; });

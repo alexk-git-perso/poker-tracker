@@ -2,7 +2,7 @@ import * as db from './db.js';
 import { summary, byGroup, byMonth, variance, cumulative, sortByDate, profitOf } from './stats.js';
 import { esc, eur, fmtD, fmtM, today, uid } from './format.js';
 import { card, shareImage, canShareFiles, download } from './share.js';
-import { THEMES, applyTheme, initials, photoFromFile } from './profile.js';
+import { THEMES, applyTheme, initials, sourceFromFile, defaultCrop, clampCrop, drawCrop, cropToPhoto, loadImage } from './profile.js';
 import { liveTotals, finishLive, clock } from './live.js';
 
 const $ = id => document.getElementById(id);
@@ -173,7 +173,7 @@ $('undo').onclick = () => { if (lastDel) { S = S.concat(lastDel); persistOne(las
 /* ---------- Fenêtres : fermeture ---------- */
 const sheets = ['sh', 'bks', 'shs'];
 sheets.forEach(id => $(id).addEventListener('click', e => { if (e.target.id === id) id === 'sh' ? closeForm() : $(id).classList.remove('on'); }));
-document.addEventListener('keydown', e => { if (e.key === 'Escape') { if ($('sh').classList.contains('on')) closeForm(); ['bks', 'shs', 'pfs'].forEach(id => $(id).classList.remove('on')); } });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') { if ($('sh').classList.contains('on')) closeForm(); ['bks', 'shs', 'pfs', 'crs'].forEach(id => $(id).classList.remove('on')); } });
 
 /* ---------- Sauvegarde ---------- */
 $('bk').onclick = () => { $('bktxt').value = JSON.stringify(S, null, 1); $('bkmsg').textContent = ''; $('bks').classList.add('on'); };
@@ -245,7 +245,7 @@ function renderProfile() {
   avatar($('avimg')); avatar($('pfav'));
   $('pname').textContent = P.name || '';
   $('pname').hidden = !P.name;
-  $('pfnophoto').hidden = !P.photo;
+  $('pfnophoto').hidden = $('pfcrop').hidden = !P.photo;
   $('pfthemes').innerHTML = Object.entries(THEMES).map(([k, t]) =>
     `<button role="radio" data-k="${k}" aria-checked="${(P.theme || 'vert') === k}" style="--a:${t.accent}"><i style="background:linear-gradient(135deg,${t.felt2},${t.felt})"></i>${esc(t.name)}</button>`).join('');
   draw();
@@ -258,10 +258,47 @@ $('pfname').onchange = () => { P = { ...P, name: $('pfname').value.trim() }; sav
 $('pfname').oninput = () => { $('pname').textContent = $('pfname').value.trim(); $('pname').hidden = !$('pfname').value.trim(); };
 $('pfphoto').onchange = async () => {
   const f = $('pfphoto').files[0]; if (!f) return;
-  try { P = { ...P, photo: await photoFromFile(f) }; saveProfile(); } catch (e) { toast('Cette image n’a pas pu être lue.'); }
+  try { const src = await sourceFromFile(f); await openCrop(src, null); } catch (e) { toast('Cette image n’a pas pu être lue.'); }
   $('pfphoto').value = '';
 };
-$('pfnophoto').onclick = () => { const { photo, ...rest } = P; P = rest; saveProfile(); };
+$('pfnophoto').onclick = () => { const { photo, photoSrc, crop, ...rest } = P; P = rest; saveProfile(); };
+
+/* Recadrage : glisser pour déplacer, curseur / pincement / molette pour zoomer */
+let CR = null; // { img, src, c }
+const cv = $('crcv');
+function crDraw() {
+  if (!CR) return;
+  const N = Math.round(cv.clientWidth * (devicePixelRatio || 1)) || 600;
+  if (cv.width !== N) { cv.width = cv.height = N; }
+  const ctx = cv.getContext('2d'); ctx.clearRect(0, 0, N, N); drawCrop(ctx, CR.img, CR.c, N);
+  $('crz').value = CR.c.zoom;
+}
+async function openCrop(src, crop) {
+  const img = await loadImage(src); if (!img) throw new Error('image');
+  CR = { img, src, c: clampCrop(img, crop || defaultCrop(img)) };
+  $('crs').classList.add('on'); requestAnimationFrame(crDraw);
+}
+$('pfcrop').onclick = () => openCrop(P.photoSrc || P.photo, P.photoSrc ? P.crop : null).catch(() => toast('Cette image n’a pas pu être lue.'));
+$('crz').oninput = () => { if (CR) { CR.c = clampCrop(CR.img, { ...CR.c, zoom: +$('crz').value }); crDraw(); } };
+$('crx').onclick = () => { CR = null; $('crs').classList.remove('on'); };
+$('crok').onclick = () => {
+  if (!CR) return;
+  P = { ...P, photoSrc: CR.src, crop: CR.c, photo: cropToPhoto(CR.img, CR.c) };
+  CR = null; $('crs').classList.remove('on'); saveProfile();
+};
+const pts = new Map(); let pinch = null;
+const per = () => Math.min(CR.img.naturalWidth, CR.img.naturalHeight) / CR.c.zoom / $('crbox').clientWidth; // pixels source par pixel écran
+$('crbox').addEventListener('pointerdown', e => { if (!CR) return; $('crbox').setPointerCapture(e.pointerId); pts.set(e.pointerId, [e.clientX, e.clientY]); if (pts.size === 2) { const [a, b] = [...pts.values()]; pinch = { d: Math.hypot(a[0] - b[0], a[1] - b[1]), z: CR.c.zoom }; } });
+$('crbox').addEventListener('pointermove', e => {
+  if (!CR || !pts.has(e.pointerId)) return;
+  const prev = pts.get(e.pointerId); pts.set(e.pointerId, [e.clientX, e.clientY]);
+  if (pts.size === 2 && pinch) { const [a, b] = [...pts.values()]; CR.c = clampCrop(CR.img, { ...CR.c, zoom: pinch.z * Math.hypot(a[0] - b[0], a[1] - b[1]) / pinch.d }); }
+  else if (pts.size === 1) { const k = per(); CR.c = clampCrop(CR.img, { ...CR.c, cx: CR.c.cx - (e.clientX - prev[0]) * k, cy: CR.c.cy - (e.clientY - prev[1]) * k }); }
+  crDraw();
+});
+const up = e => { pts.delete(e.pointerId); if (pts.size < 2) pinch = null; };
+$('crbox').addEventListener('pointerup', up); $('crbox').addEventListener('pointercancel', up);
+$('crbox').addEventListener('wheel', e => { if (!CR) return; e.preventDefault(); CR.c = clampCrop(CR.img, { ...CR.c, zoom: CR.c.zoom * (e.deltaY < 0 ? 1.08 : 1 / 1.08) }); crDraw(); }, { passive: false });
 $('pfthemes').onclick = e => { const b = e.target.closest('[data-k]'); if (b) { P = { ...P, theme: b.dataset.k }; saveProfile(); } };
 
 /* ---------- Session en direct ---------- */

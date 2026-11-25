@@ -136,6 +136,7 @@
     <span class="av big" id="pfav"></span>
     <div style="display:grid;gap:8px">
       <label class="btn" style="display:inline-flex;align-items:center;justify-content:center;color:var(--ink)">Choisir une photo<input type="file" id="pfphoto" accept="image/*" hidden></label>
+      <button class="btn" id="pfcrop" hidden>Recadrer</button>
       <button class="btn ghost" id="pfnophoto" hidden>Retirer la photo</button>
     </div>
   </div>
@@ -144,6 +145,14 @@
   <div class="sw" id="pfthemes" role="radiogroup" aria-label="Couleur"></div>
   <p class="note" style="margin-top:14px">Le nom, la photo et la couleur apparaissent aussi sur les images que vous partagez. Tout reste sur cet appareil.</p>
   <div class="acts"><button class="btn pri" id="pfclose">Terminé</button></div>
+</div></div>
+
+<div class="sheet" id="crs" role="dialog" aria-modal="true" aria-labelledby="crt"><div class="panel">
+  <h3 id="crt">Recadrer la photo</h3>
+  <p class="note">Faites glisser la photo pour la placer, et zoomez avec le curseur ou en pinçant.</p>
+  <div class="crop" id="crbox"><canvas id="crcv" aria-label="Aperçu du cadrage"></canvas></div>
+  <label class="zoom">Zoom<input type="range" id="crz" min="1" max="5" step="0.01" value="1"></label>
+  <div class="acts"><button class="btn" id="crx">Annuler</button><button class="btn pri" id="crok">Valider</button></div>
 </div></div>
 
 <div class="toast" id="toast"><span id="tmsg"></span><button id="undo">Annuler</button></div>
