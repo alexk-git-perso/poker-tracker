@@ -3,9 +3,10 @@ import { summary, byGroup, byMonth, variance, cumulative, sortByDate, profitOf }
 import { esc, eur, fmtD, fmtM, today, uid } from './format.js';
 import { card, shareImage, canShareFiles, download } from './share.js';
 import { THEMES, applyTheme, initials, photoFromFile } from './profile.js';
+import { liveTotals, finishLive, clock } from './live.js';
 
 const $ = id => document.getElementById(id);
-let P = {}, S = [], filter = 'all', editing = null, ftype = 'cash', lastDel = null, tt, shot = null, stored = true;
+let P = {}, LIVE = null, S = [], filter = 'all', editing = null, ftype = 'cash', lastDel = null, tt, shot = null, stored = true;
 const data = () => S;
 const view = () => sortByDate(data().filter(s => filter === 'all' || s.type === filter));
 const label = () => (filter === 'cash' ? 'Bilan cash game' : filter === 'tournoi' ? 'Bilan tournois' : 'Mon bilan poker');
@@ -29,7 +30,7 @@ function render() {
   const rev = L.slice().reverse();
   $('list').innerHTML = rev.length ? rev.map(s => {
     const p = profitOf(s), t = s.type === 'tournoi';
-    const meta = fmtD(s.date) + (s.duree ? ' · ' + String(s.duree).replace('.', ',') + ' h' : '') + (t && s.place ? ' · ' + s.place + 'e' + (s.joueurs ? '/' + s.joueurs : '') : '');
+    const meta = fmtD(s.date) + (s.duree ? ' · ' + String(s.duree).replace('.', ',') + ' h' : '') + (t && s.place ? ' · ' + s.place + 'e' + (s.joueurs ? '/' + s.joueurs : '') : '') + (s.recaves ? ' · ' + s.recaves + ' recave' + (s.recaves > 1 ? 's' : '') : '');
     return `<button class="row" data-id="${esc(s.id)}"><span class="chipi ${t ? 't' : ''}">${t ? 'MTT' : 'CG'}</span><span><span class="d">${esc(s.lieu || 'Session')}</span> <span class="m">· ${esc(s.jeu || (t ? 'Tournoi' : 'Cash game'))}</span><br><span class="m">${esc(meta)}</span></span><span class="p ${cls(p)}">${eur(p, true)}<small>${eur(s.buyin)} → ${eur(s.cashout)}</small></span></button>`;
   }).join('') : '<div class="empty">Aucune session pour ce filtre. Ajoutez-en une avec « + Session ».</div>';
 
@@ -124,6 +125,7 @@ function openForm(s) {
   editing = s ? s.id : null;
   $('ft').textContent = editing ? 'Modifier la session' : 'Nouvelle session';
   $('del').hidden = $('shareOne').hidden = !editing;
+  $('golive').hidden = $('golivehint').hidden = !!editing || !!LIVE;
   const last = sortByDate(S).pop();
   const v = s || { date: today(), lieu: last?.lieu || '', jeu: last?.jeu || '', type: last?.type || 'cash' };
   F.forEach(f => $('f-' + f).value = v[f] ?? '');
@@ -144,6 +146,8 @@ $('frm').onsubmit = e => {
   const o = { id: editing || uid(), type: ftype };
   F.forEach(f => { const v = $('f-' + f).value.trim(); o[f] = NUM.includes(f) ? (v === '' ? null : +v) : v; });
   o.buyin ||= 0; o.cashout ||= 0;
+  const prev = editing && S.find(s => s.id === editing);
+  if (prev?.recaves) o.recaves = prev.recaves;
   if (ftype !== 'tournoi') { o.place = null; o.joueurs = null; }
   S = editing ? S.map(s => (s.id === editing ? o : s)) : S.concat(o);
   persistOne(o); closeForm();
@@ -183,7 +187,7 @@ $('bkfile').onchange = async () => { const f = $('bkfile').files[0]; if (f) { $(
 const clean = s => ({
   id: String(s.id || uid()), type: s.type === 'tournoi' ? 'tournoi' : 'cash', date: String(s.date).slice(0, 10),
   lieu: String(s.lieu || ''), jeu: String(s.jeu || ''), buyin: +s.buyin, cashout: +s.cashout,
-  duree: s.duree == null ? null : +s.duree, place: s.place == null ? null : +s.place, joueurs: s.joueurs == null ? null : +s.joueurs, notes: String(s.notes || ''),
+  duree: s.duree == null ? null : +s.duree, place: s.place == null ? null : +s.place, joueurs: s.joueurs == null ? null : +s.joueurs, recaves: +s.recaves || 0, notes: String(s.notes || ''),
 });
 $('bkimp').onclick = () => {
   try {
@@ -249,6 +253,65 @@ $('pfphoto').onchange = async () => {
 $('pfnophoto').onclick = () => { const { photo, ...rest } = P; P = rest; saveProfile(); };
 $('pfthemes').onclick = e => { const b = e.target.closest('[data-k]'); if (b) { P = { ...P, theme: b.dataset.k }; saveProfile(); } };
 
+/* ---------- Session en direct ---------- */
+let tick = null;
+const saveLive = () => (LIVE ? db.setLive(LIVE) : db.clearLive()).catch(() => toast('Session en cours non enregistrée sur cet appareil.'));
+function renderLive() {
+  $('lv').hidden = !LIVE;
+  clearInterval(tick); tick = null;
+  if (!LIVE) return;
+  const t = liveTotals(LIVE);
+  $('lv-where').textContent = [LIVE.type === 'tournoi' ? 'Tournoi' : 'Cash game', LIVE.lieu, LIVE.jeu].filter(Boolean).join(' · ');
+  $('lv-in').textContent = eur(t.buyin);
+  $('lv-n').textContent = String(t.recaves);
+  $('lv-undo').hidden = !t.recaves;
+  $('lv-tsec').hidden = LIVE.type !== 'tournoi';
+  const upd = () => { $('lv-time').textContent = clock(liveTotals(LIVE).ms); liveResult(); };
+  upd(); tick = setInterval(upd, 15000);
+}
+function liveResult() {
+  const el = $('lv-res'), v = $('lv-out').value;
+  if (!LIVE || v === '') { el.textContent = ''; return; }
+  const t = liveTotals(LIVE), p = +v - t.buyin, h = t.hours;
+  el.textContent = eur(p, true) + (h >= 0.05 ? ' · ' + eur(p / h, true) + '/h' : '');
+  el.style.color = p >= 0 ? '#e6c36a' : '#ffb3b6';
+}
+const lvShow = which => { $('lv-main').hidden = which !== 'main'; $('lv-fr').hidden = which !== 'rebuy'; $('lv-fe').hidden = which !== 'end'; };
+$('golive').onclick = () => {
+  const amt = +$('f-buyin').value;
+  if (!(amt > 0)) { $('f-buyin').focus(); $('f-buyin').reportValidity?.(); toast('Indiquez le buy-in de départ.'); return; }
+  const now = Date.now();
+  LIVE = { id: uid(), type: ftype, lieu: $('f-lieu').value.trim(), jeu: $('f-jeu').value.trim(), notes: $('f-notes').value.trim(), start: now, buyins: [{ amount: amt, at: now }] };
+  saveLive(); closeForm(); lvShow('main'); renderLive(); scrollTo({ top: 0 });
+  toast('Session démarrée. Bonne partie !');
+};
+$('lv-rebuy').onclick = () => { const last = LIVE.buyins[LIVE.buyins.length - 1]; $('lv-amt').value = last ? last.amount : ''; lvShow('rebuy'); $('lv-amt').focus(); };
+$('lv-frx').onclick = () => lvShow('main');
+$('lv-fr').onsubmit = e => {
+  e.preventDefault(); const a = +$('lv-amt').value; if (!(a > 0)) return;
+  LIVE.buyins.push({ amount: a, at: Date.now() }); saveLive(); lvShow('main'); renderLive();
+  toast('Recave de ' + eur(a) + ' ajoutée.');
+};
+$('lv-undo').onclick = () => { if (LIVE.buyins.length > 1) { const r = LIVE.buyins.pop(); saveLive(); renderLive(); toast('Recave de ' + eur(r.amount) + ' retirée.'); } };
+$('lv-end').onclick = () => { $('lv-out').value = ''; $('lv-place').value = ''; $('lv-joueurs').value = ''; lvShow('end'); liveResult(); $('lv-out').focus(); };
+$('lv-out').oninput = liveResult;
+$('lv-fex').onclick = () => lvShow('main');
+$('lv-fe').onsubmit = e => {
+  e.preventDefault();
+  const num = id => ($(id).value === '' ? null : +$(id).value);
+  const s = finishLive(LIVE, +$('lv-out').value || 0, Date.now(), { place: num('lv-place'), joueurs: num('lv-joueurs') });
+  S = S.concat(s); persistOne(s); LIVE = null; saveLive(); lvShow('main'); renderLive();
+  showTab('tab-sessions'); if (filter !== 'all' && filter !== s.type) document.querySelector('#flt [data-f=all]').click(); else render();
+  toast('Session enregistrée : ' + eur(profitOf(s), true) + '.');
+};
+let dropArmed = false;
+$('lv-drop').onclick = () => {
+  if (!dropArmed) { dropArmed = true; $('lv-drop').textContent = 'Confirmer l’abandon'; setTimeout(() => { dropArmed = false; $('lv-drop').textContent = 'Abandonner la session'; }, 4000); return; }
+  dropArmed = false; $('lv-drop').textContent = 'Abandonner la session';
+  LIVE = null; saveLive(); lvShow('main'); renderLive(); toast('Session en cours abandonnée.');
+};
+document.addEventListener('visibilitychange', () => { if (!document.hidden && LIVE) renderLive(); });
+
 /* ---------- Installation ---------- */
 let deferred = null;
 const standalone = matchMedia('(display-mode: standalone)').matches || navigator.standalone;
@@ -263,6 +326,7 @@ if ('serviceWorker' in navigator) addEventListener('load', () => navigator.servi
 /* ---------- Démarrage ---------- */
 renderProfile();
 render();
+db.getLive().then(l => { LIVE = l || null; renderLive(); }).catch(() => {});
 db.getProfile().then(p => { P = p; if ($('pfs').classList.contains('on')) $('pfname').value = P.name || ''; renderProfile(); }).catch(() => {});
 db.all().then(rows => {
   // Ancienne version : retire toute session d'exemple qui aurait été enregistrée, sans toucher aux vraies

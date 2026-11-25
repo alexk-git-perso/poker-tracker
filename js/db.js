@@ -48,3 +48,8 @@ export async function persist() {
 // Paramètres du joueur (nom, photo, couleur) : une seule fiche
 export const getProfile = () => tx('readonly', st => st.get('profile'), PREFS).then(p => p || {});
 export const setProfile = p => tx('readwrite', st => st.put(p, 'profile'), PREFS);
+
+// Session en direct : survit à la fermeture de l'appli
+export const getLive = () => tx('readonly', st => st.get('live'), PREFS);
+export const setLive = l => tx('readwrite', st => st.put(l, 'live'), PREFS);
+export const clearLive = () => tx('readwrite', st => st.delete('live'), PREFS);

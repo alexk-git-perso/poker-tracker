@@ -105,3 +105,19 @@ summary{cursor:pointer;min-height:44px;display:flex;align-items:center}
 .sw button i{width:32px;height:32px;border-radius:50%;display:block;border:3px solid var(--a)}
 .sw button[aria-checked=true]{border-color:var(--ink);box-shadow:0 0 0 1px var(--ink)}
 .sw button:focus-visible{outline:3px solid var(--brass);outline-offset:2px}
+.lv{margin-top:14px;background:rgba(0,0,0,.25);border:1px solid rgba(230,195,106,.45);border-radius:16px;padding:14px;color:var(--on)}
+.lv-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:15px}
+.lv-top span:last-child{color:#cfe3d7}
+.pulse{width:10px;height:10px;border-radius:50%;background:#ff5a5f;box-shadow:0 0 0 0 rgba(255,90,95,.6)}
+@media(prefers-reduced-motion:no-preference){.pulse{animation:pl 1.6s infinite}@keyframes pl{70%{box-shadow:0 0 0 10px rgba(255,90,95,0)}100%{box-shadow:0 0 0 0 rgba(255,90,95,0)}}}
+.lv-nums{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:10px 0 12px}
+.lv-nums small{display:block;color:#cfe3d7;font-size:13px}
+.lv-nums b{font:800 clamp(20px,5vw,28px)/1.1 Rubik,sans-serif;white-space:nowrap;font-variant-numeric:tabular-nums}
+.lv-acts{display:flex;flex-wrap:wrap;gap:8px}
+.lv .btn{background:var(--on);color:var(--felt);border:0}
+.lv .btn.pri{background:var(--chip);color:#fff}
+.lv .btn.ghost{background:none;color:#ffb3b6;text-decoration:underline;margin-right:auto;padding:0 4px}
+.lv-form{display:grid;gap:10px}
+.lv-form label{color:#cfe3d7}
+.lv-form input{background:rgba(255,255,255,.95);color:#16201b;border:0}
+.lv-res{margin:0;font:700 20px Rubik,sans-serif;min-height:1.2em}

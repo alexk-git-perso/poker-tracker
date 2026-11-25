@@ -6,6 +6,7 @@ Les données restent **uniquement sur l'appareil** (IndexedDB) : aucun serveur, 
 ## Fonctions
 
 - Sessions **cash game** (par défaut) ou **tournoi** : date, lieu, jeu/limite, buy-in (recaves comprises), cash-out, durée, place finale et nombre de joueurs.
+- **Session en direct** : « Démarrer maintenant » lance un chrono, on ajoute les recaves pendant la partie, puis on clôture avec le cash-out. Durée, buy-in total et gain horaire sont calculés, et la session en cours survit à la fermeture de l'appli.
 - Courbe du **bénéfice cumulé**, filtre Tout / Cash / Tournoi.
 - Stats : bénéfice horaire, % de sessions gagnantes, plus gros gain et plus grosse perte, ROI et places payées en tournoi.
 - Onglet **Analyse** : bénéfice par mois, par lieu, par jeu/limite, écart-type par session, pire downswing, plus longue série perdante.
@@ -21,6 +22,8 @@ css/app.css           styles
 js/app.js             interface
 js/db.js              base locale IndexedDB
 js/stats.js           calculs (fonctions pures, testées)
+js/live.js            session en direct (testée)
+js/profile.js         paramètres du joueur, couleurs
 js/share.js           image à partager
 js/format.js          utilitaires
 sw.js                 service worker (hors ligne)

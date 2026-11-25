@@ -28,6 +28,28 @@
     </div>
   </div>
   <div class="big"><b id="tot">0 €</b><span id="sub"></span></div>
+  <section class="lv" id="lv" hidden aria-label="Session en cours">
+    <div class="lv-top"><span class="pulse" aria-hidden="true"></span><b>En cours</b><span id="lv-where"></span></div>
+    <div class="lv-nums">
+      <div><small>Durée</small><b id="lv-time">0 h 00</b></div>
+      <div><small>Buy-in total</small><b id="lv-in">0 €</b></div>
+      <div><small>Recaves</small><b id="lv-n">0</b></div>
+    </div>
+    <div class="lv-acts" id="lv-main"><button class="btn" id="lv-rebuy">+ Recave</button><button class="btn" id="lv-undo" hidden>Annuler la dernière recave</button><button class="btn pri" id="lv-end">Terminer</button></div>
+    <form class="lv-form" id="lv-fr" hidden>
+      <label>Montant de la recave (€)<input type="number" id="lv-amt" min="0.01" step="0.01" inputmode="decimal" required></label>
+      <div class="lv-acts"><button type="button" class="btn" id="lv-frx">Annuler</button><button class="btn pri">Ajouter</button></div>
+    </form>
+    <form class="lv-form" id="lv-fe" hidden>
+      <label>Cash-out (€)<input type="number" id="lv-out" min="0" step="0.01" inputmode="decimal" required></label>
+      <div class="lv-t grid" id="lv-tsec" hidden>
+        <label>Place finale<input type="number" id="lv-place" min="1" inputmode="numeric"></label>
+        <label>Joueurs<input type="number" id="lv-joueurs" min="2" inputmode="numeric"></label>
+      </div>
+      <p class="lv-res" id="lv-res"></p>
+      <div class="lv-acts"><button type="button" class="btn ghost" id="lv-drop">Abandonner la session</button><button type="button" class="btn" id="lv-fex">Reprendre</button><button class="btn pri">Enregistrer la session</button></div>
+    </form>
+  </section>
   <div class="fig" id="fig"><svg id="svg" role="img" aria-label="Bénéfice cumulé dans le temps"></svg></div>
   <div class="inst" id="inst"><span id="instmsg">Installez l’appli sur votre écran d’accueil pour l’utiliser hors ligne.</span><button class="btn" id="instbtn">Installer</button></div>
 </div></header>
@@ -85,7 +107,8 @@
   </div>
   <datalist id="lieux"></datalist><datalist id="jeux"></datalist>
   <div class="live" id="live"></div>
-  <div class="acts"><button type="button" class="btn ghost sp" id="del" hidden>Supprimer</button><button type="button" class="btn" id="shareOne" hidden>Partager en image</button><button type="button" class="btn" id="cancel">Annuler</button><button class="btn pri">Enregistrer</button></div>
+  <div class="acts"><button type="button" class="btn ghost sp" id="del" hidden>Supprimer</button><button type="button" class="btn" id="shareOne" hidden>Partager en image</button><button type="button" class="btn" id="cancel">Annuler</button><button type="button" class="btn" id="golive">Démarrer maintenant</button><button class="btn pri">Enregistrer</button></div>
+  <p class="note" id="golivehint" style="margin:10px 0 0">« Démarrer maintenant » lance le chrono avec ce buy-in : vous ajouterez les recaves et le cash-out pendant la partie.</p>
 </form></div>
 
 <div class="sheet" id="bks" role="dialog" aria-modal="true" aria-labelledby="bt"><div class="panel">
