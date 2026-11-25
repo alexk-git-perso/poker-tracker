@@ -4,6 +4,7 @@ import { esc, eur, fmtD, fmtM, today, uid } from './format.js';
 import { card, shareImage, canShareFiles, download } from './share.js';
 import { THEMES, applyTheme, initials, sourceFromFile, defaultCrop, clampCrop, drawCrop, cropToPhoto, loadImage } from './profile.js';
 import { liveTotals, finishLive, clock } from './live.js';
+import { RANKS, SUITS, suitOf, rankLabel, isCard, handName, cardHTML } from './cards.js';
 
 const $ = id => document.getElementById(id);
 const APP_VERSION = self.APP_VERSION || '?';
@@ -32,7 +33,7 @@ function render() {
   $('list').innerHTML = rev.length ? rev.map(s => {
     const p = profitOf(s), t = s.type === 'tournoi';
     const meta = fmtD(s.date) + (s.duree ? ' · ' + String(s.duree).replace('.', ',') + ' h' : '') + (t && s.place ? ' · ' + s.place + 'e' + (s.joueurs ? '/' + s.joueurs : '') : '') + (s.recaves ? ' · ' + s.recaves + ' recave' + (s.recaves > 1 ? 's' : '') : '');
-    return `<button class="row" data-id="${esc(s.id)}"><span class="chipi ${t ? 't' : ''}">${t ? 'MTT' : 'CG'}</span><span><span class="d">${esc(s.lieu || 'Session')}</span> <span class="m">· ${esc(s.jeu || (t ? 'Tournoi' : 'Cash game'))}</span><br><span class="m">${esc(meta)}</span></span><span class="p ${cls(p)}">${eur(p, true)}<small>${eur(s.buyin)} → ${eur(s.cashout)}</small></span></button>`;
+    return `<button class="row" data-id="${esc(s.id)}"><span class="chipi ${t ? 't' : ''}">${t ? 'MTT' : 'CG'}</span><span><span class="d">${esc(s.lieu || 'Session')}</span> <span class="m">· ${esc(s.jeu || (t ? 'Tournoi' : 'Cash game'))}</span><br><span class="m">${esc(meta)}</span>${s.hand?.length ? `<span class="cards" title="${esc(handName(s.hand))}">${s.hand.filter(isCard).map(c => cardHTML(c)).join('')}</span>` : ''}</span><span class="p ${cls(p)}">${eur(p, true)}<small>${eur(s.buyin)} → ${eur(s.cashout)}</small></span></button>`;
   }).join('') : '<div class="empty">Aucune session pour ce filtre. Ajoutez-en une avec « + Session ».</div>';
 
   const opts = k2 => [...new Set(all.map(s => s[k2]).filter(Boolean))].map(v => `<option value="${esc(v)}">`).join('');
@@ -131,6 +132,7 @@ function openForm(s) {
   const v = s || { date: today(), lieu: last?.lieu || '', jeu: last?.jeu || '', type: last?.type || 'cash' };
   F.forEach(f => $('f-' + f).value = v[f] ?? '');
   setType(v.type || 'cash');
+  formHand = (v.hand || []).filter(isCard); renderHandBtn();
   $('sh').classList.add('on');
 }
 const closeForm = () => { $('sh').classList.remove('on'); };
@@ -148,6 +150,7 @@ $('frm').onsubmit = e => {
   o.buyin ||= 0; o.cashout ||= 0;
   const prev = editing && S.find(s => s.id === editing);
   if (prev?.recaves) o.recaves = prev.recaves;
+  if (formHand.length) o.hand = formHand.slice();
   if (ftype !== 'tournoi') { o.place = null; o.joueurs = null; }
   S = editing ? S.map(s => (s.id === editing ? o : s)) : S.concat(o);
   persistOne(o); closeForm();
@@ -173,7 +176,7 @@ $('undo').onclick = () => { if (lastDel) { S = S.concat(lastDel); persistOne(las
 /* ---------- Fenêtres : fermeture ---------- */
 const sheets = ['sh', 'bks', 'shs'];
 sheets.forEach(id => $(id).addEventListener('click', e => { if (e.target.id === id) id === 'sh' ? closeForm() : $(id).classList.remove('on'); }));
-document.addEventListener('keydown', e => { if (e.key === 'Escape') { if ($('sh').classList.contains('on')) closeForm(); ['bks', 'shs', 'pfs', 'crs'].forEach(id => $(id).classList.remove('on')); } });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') { if ($('sh').classList.contains('on')) closeForm(); ['bks', 'shs', 'pfs', 'crs', 'hds'].forEach(id => $(id).classList.remove('on')); } });
 
 /* ---------- Sauvegarde ---------- */
 $('bk').onclick = () => { $('bktxt').value = JSON.stringify(S, null, 1); $('bkmsg').textContent = ''; $('bks').classList.add('on'); };
@@ -187,7 +190,7 @@ $('bkfile').onchange = async () => { const f = $('bkfile').files[0]; if (f) { $(
 const clean = s => ({
   id: String(s.id || uid()), type: s.type === 'tournoi' ? 'tournoi' : 'cash', date: String(s.date).slice(0, 10),
   lieu: String(s.lieu || ''), jeu: String(s.jeu || ''), buyin: +s.buyin, cashout: +s.cashout,
-  duree: s.duree == null ? null : +s.duree, place: s.place == null ? null : +s.place, joueurs: s.joueurs == null ? null : +s.joueurs, recaves: +s.recaves || 0, notes: String(s.notes || ''),
+  duree: s.duree == null ? null : +s.duree, place: s.place == null ? null : +s.place, joueurs: s.joueurs == null ? null : +s.joueurs, recaves: +s.recaves || 0, notes: String(s.notes || ''), ...(Array.isArray(s.hand) && s.hand.every(isCard) && s.hand.length ? { hand: s.hand.slice(0, 5) } : {}),
 });
 $('bkimp').onclick = () => {
   try {
@@ -246,6 +249,7 @@ function renderProfile() {
   $('pname').textContent = P.name || '';
   $('pname').hidden = !P.name;
   $('pfnophoto').hidden = $('pfcrop').hidden = !P.photo;
+  $('pffav').innerHTML = handBtnHTML((P.fav || []).filter(isCard), 'Choisir 2 cartes');
   $('pfthemes').innerHTML = Object.entries(THEMES).map(([k, t]) =>
     `<button role="radio" data-k="${k}" aria-checked="${(P.theme || 'vert') === k}" style="--a:${t.accent}"><i style="background:linear-gradient(135deg,${t.felt2},${t.felt})"></i>${esc(t.name)}</button>`).join('');
   draw();
@@ -359,6 +363,39 @@ $('lv-drop').onclick = () => {
   LIVE = null; saveLive(); lvShow('main'); renderLive(); toast('Session en cours abandonnée.');
 };
 document.addEventListener('visibilitychange', () => { if (!document.hidden && LIVE) renderLive(); });
+
+/* ---------- Meilleure main ---------- */
+let formHand = [], pickHand = [], pickSuit = 's', pickMax = 5, onPicked = null;
+const handBtnHTML = (H, empty) => H.length ? `<span class="cards">${H.map(c => cardHTML(c)).join('')}</span>${handName(H) ? `<span>${esc(handName(H))}</span>` : ''}` : `<span>${empty}</span>`;
+function renderHandBtn() {
+  $('f-hand').innerHTML = handBtnHTML(formHand, 'Choisir les cartes');
+}
+function renderPicker() {
+  $('hdslots').style.gridTemplateColumns = `repeat(${pickMax},minmax(0,1fr))`;
+  $('hdslots').style.maxWidth = pickMax * 66 + 'px';
+  $('hdslots').innerHTML = [...Array(pickMax).keys()].map(i => pickHand[i]
+    ? cardHTML(pickHand[i]).replace('<span class="pc', `<span role="button" tabindex="0" data-i="${i}" class="pc`)
+    : '<span class="empty-slot" aria-hidden="true"></span>').join('');
+  $('hdname').textContent = handName(pickHand);
+  $('hdsuits').innerHTML = SUITS.map(s => `<button role="radio" data-s="${s.k}" class="${s.red ? 'red' : ''}" aria-checked="${s.k === pickSuit}" aria-label="${s.name}">${s.sym}</button>`).join('');
+  const full = pickHand.length >= pickMax, red = suitOf('A' + pickSuit).red;
+  $('hdranks').innerHTML = RANKS.map(r => `<button data-r="${r}" class="${red ? 'red' : ''}" ${full || pickHand.includes(r + pickSuit) ? 'disabled' : ''}>${rankLabel(r)}</button>`).join('');
+}
+function openPicker(title, cards, max, done) {
+  $('hdt').textContent = title; pickMax = max; pickHand = cards.slice(0, max); onPicked = done;
+  $('hdhelp').textContent = `Choisissez la couleur, puis touchez les valeurs. ${max} cartes au plus ; touchez une carte en haut pour la retirer.`;
+  renderPicker(); $('hds').classList.add('on');
+}
+$('f-hand').onclick = () => openPicker('Meilleure main', formHand, 5, H => { formHand = H; renderHandBtn(); });
+$('pffav').onclick = () => openPicker('Main de départ préférée', P.fav || [], 2, H => { P = { ...P, fav: H }; saveProfile(); });
+$('hdsuits').onclick = e => { const b = e.target.closest('[data-s]'); if (b) { pickSuit = b.dataset.s; renderPicker(); } };
+$('hdranks').onclick = e => { const b = e.target.closest('[data-r]'); if (b && !b.disabled && pickHand.length < pickMax) { pickHand.push(b.dataset.r + pickSuit); renderPicker(); } };
+const unpick = e => { const c = e.target.closest('[data-i]'); if (c) { pickHand.splice(+c.dataset.i, 1); renderPicker(); } };
+$('hdslots').onclick = unpick;
+$('hdslots').onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); unpick(e); } };
+$('hdclear').onclick = () => { pickHand = []; renderPicker(); };
+$('hdx').onclick = () => $('hds').classList.remove('on');
+$('hdok').onclick = () => { onPicked?.(pickHand.slice()); $('hds').classList.remove('on'); };
 
 /* ---------- Fenêtres : glisser vers le bas pour fermer ---------- */
 function closeSheet(id) {

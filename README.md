@@ -11,7 +11,8 @@ Les données restent **uniquement sur l'appareil** (IndexedDB) : aucun serveur, 
 - Stats : bénéfice horaire, % de sessions gagnantes, plus gros gain et plus grosse perte, ROI et places payées en tournoi.
 - Onglet **Analyse** : bénéfice par mois, par lieu, par jeu/limite, écart-type par session, pire downswing, plus longue série perdante.
 - **Partage en image** d'une session ou du bilan (carte 1080×1350) via le partage natif du téléphone (WhatsApp, Messages…), sinon téléchargement.
-- **Paramètres** : nom de joueur, photo (recadrable : glisser, zoomer) et couleur, repris sur les images partagées.
+- **Meilleure main** d'une session : sélecteur de cartes visuel, nom de la main détecté (Full, Couleur…), affichée dans l'historique et sur les images.
+- **Paramètres** : nom de joueur, photo (recadrable : glisser, zoomer), couleur et main de départ préférée, repris sur les images partagées.
 - **Sauvegarde** : export et import JSON pour garder une copie ou changer d'appareil.
 
 ## Structure

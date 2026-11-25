@@ -136,3 +136,29 @@ summary{cursor:pointer;min-height:44px;display:flex;align-items:center}
 html.modal,html.modal body{overflow:hidden;overscroll-behavior:none}
 .sheet,.panel{overscroll-behavior:contain}
 .ver{font-size:13px;color:var(--mute);margin:8px 0 0;font-variant-numeric:tabular-nums}
+.pc{--cw:34px;position:relative;display:inline-flex;flex-direction:column;justify-content:space-between;width:var(--cw);height:calc(var(--cw)*1.4);padding:calc(var(--cw)*.08) calc(var(--cw)*.1);border-radius:calc(var(--cw)*.12);background:#fdfbf6;color:#16201b;box-shadow:0 1px 3px rgba(0,0,0,.35);font:800 calc(var(--cw)*.4)/1 Rubik,sans-serif;flex:none;vertical-align:middle}
+.pc.red{color:#c8202f}
+.pc i{font-style:normal;align-self:center;font-size:calc(var(--cw)*.6);line-height:1;margin-bottom:calc(var(--cw)*.08)}
+.cards{display:inline-flex;gap:4px;flex-wrap:wrap;align-items:center}
+.row .cards{--cw:20px;gap:3px;margin-left:6px}
+.row .cards .pc{--cw:20px}
+.hfield{display:grid;gap:4px}
+.hlbl{font-size:14px;color:var(--mute)}
+.handbtn{min-height:62px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:8px 12px;border-radius:10px;border:1px dashed var(--mute);background:var(--bg);color:var(--ink);font:500 15px Inter,sans-serif;cursor:pointer;text-align:left}
+.handbtn .pc{--cw:30px}
+.handbtn:focus-visible{outline:3px solid var(--brass);outline-offset:2px}
+.slots{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;max-width:330px;margin:0 auto}
+.slots>*{aspect-ratio:5/7;width:100%}
+.slots .pc{--cw:min(60px,16vw);width:100%;height:auto;border:0;cursor:pointer}
+.slots .empty-slot{border:2px dashed var(--line);border-radius:8px}
+.hname{text-align:center;font:700 18px Rubik,sans-serif;min-height:1.4em;margin:10px 0}
+.suits{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-bottom:10px}
+.suits button{height:52px;border-radius:12px;border:2px solid var(--line);background:var(--bg);font:28px/1 sans-serif;color:#16201b;cursor:pointer}
+:root .suits button{color:light-dark(#16201b,#ece8de)}
+.suits button.red{color:#e0303f}
+.suits button[aria-checked=true]{border-color:var(--chip);background:color-mix(in srgb,var(--chip) 14%,var(--bg))}
+.ranks{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
+.ranks button{height:48px;border-radius:10px;border:1px solid var(--line);background:#fdfbf6;color:#16201b;font:800 19px Rubik,sans-serif;cursor:pointer}
+.ranks button.red{color:#c8202f}
+.ranks button:disabled{opacity:.3;cursor:default}
+.suits button:focus-visible,.ranks button:focus-visible,.slots .pc:focus-visible{outline:3px solid var(--brass);outline-offset:2px}

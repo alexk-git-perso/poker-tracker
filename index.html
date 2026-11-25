@@ -104,6 +104,7 @@
       <label>Place finale<input type="number" id="f-place" min="1" inputmode="numeric"></label>
       <label>Joueurs<input type="number" id="f-joueurs" min="2" inputmode="numeric"></label>
     </div>
+    <div class="full hfield"><span class="hlbl" id="f-hlbl">Meilleure main</span><button type="button" class="handbtn" id="f-hand" aria-describedby="f-hlbl"></button></div>
     <label class="full">Notes<input id="f-notes" placeholder="Table, mains marquantes…"></label>
   </div>
   <datalist id="lieux"></datalist><datalist id="jeux"></datalist>
@@ -141,6 +142,7 @@
       <button class="btn ghost" id="pfnophoto" hidden>Retirer la photo</button>
     </div>
   </div>
+  <div class="hfield" style="margin-top:14px"><span class="hlbl" id="pfhlbl">Main de départ préférée</span><button type="button" class="handbtn" id="pffav" aria-describedby="pfhlbl"></button></div>
   <label style="margin-top:14px">Nom de joueur<input id="pfname" maxlength="40" placeholder="Votre nom ou pseudo" autocomplete="nickname"></label>
   <p class="lbl">Couleur</p>
   <div class="sw" id="pfthemes" role="radiogroup" aria-label="Couleur"></div>
@@ -154,6 +156,16 @@
   <div class="crop" id="crbox"><canvas id="crcv" aria-label="Aperçu du cadrage"></canvas></div>
   <label class="zoom">Zoom<input type="range" id="crz" min="1" max="5" step="0.01" value="1"></label>
   <div class="acts"><button class="btn" id="crx">Annuler</button><button class="btn pri" id="crok">Valider</button></div>
+</div></div>
+
+<div class="sheet" id="hds" role="dialog" aria-modal="true" aria-labelledby="hdt"><div class="panel">
+  <h3 id="hdt">Meilleure main</h3>
+  <div class="slots" id="hdslots" aria-label="Cartes choisies (toucher une carte pour la retirer)"></div>
+  <p class="hname" id="hdname"></p>
+  <div class="suits" id="hdsuits" role="radiogroup" aria-label="Couleur"></div>
+  <div class="ranks" id="hdranks" aria-label="Valeur"></div>
+  <p class="note" style="margin:10px 0 0" id="hdhelp"></p>
+  <div class="acts"><button class="btn ghost sp" id="hdclear">Effacer</button><button class="btn" id="hdx">Annuler</button><button class="btn pri" id="hdok">Valider</button></div>
 </div></div>
 
 <div class="toast" id="toast"><span id="tmsg"></span><button id="undo">Annuler</button></div>
