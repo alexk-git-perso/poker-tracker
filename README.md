@@ -15,9 +15,13 @@ Captures réalisées avec des données fictives, sur un écran de téléphone An
 |:---:|:---:|:---:|
 | <img src="docs/screenshots/4-parametres.png" width="240" alt="Paramètres : photo, main préférée, nom, couleur"> | <img src="docs/screenshots/4b-langue-a-propos.png" width="240" alt="Paramètres : langue et section À propos"> | <img src="docs/screenshots/5-meilleure-main.png" width="240" alt="Sélecteur de cartes"> |
 
-| Partage |
+| Partage | Photos d'une session | Visionneuse |
+|:---:|:---:|:---:|
+| <img src="docs/screenshots/6-partage.png" width="240" alt="Choix de l'image à partager"> | <img src="docs/screenshots/7-photos.png" width="240" alt="Fiche de session avec trois photos"> | <img src="docs/screenshots/7b-visionneuse.png" width="240" alt="Photo affichée en grand avec flèches"> |
+
+| Suppression par appui long |
 |:---:|
-| <img src="docs/screenshots/6-partage.png" width="240" alt="Choix de l'image à partager"> |
+| <img src="docs/screenshots/8-suppression.png" width="240" alt="Confirmation de suppression d'une session"> |
 
 Images à partager (version détaillée et version photo) :
 
@@ -32,7 +36,7 @@ Images à partager (version détaillée et version photo) :
 - Onglet **Analyse** : bénéfice par mois, par lieu, par jeu/limite, écart-type par session, pire downswing, plus longue série perdante.
 - **Partage en image** d'une session ou du bilan (carte 1080×1350) via le partage natif du téléphone (WhatsApp, Messages…), sinon téléchargement.
 - **Meilleure main** d'une session : sélecteur de cartes visuel, nom de la main détecté (Full, Couleur…), affichée dans l'historique et sur les images.
-- **Photos de session** : jusqu'à 5 photos par session (réduite à 1600 px en JPEG et stockée localement dans IndexedDB), visible en grand depuis la fiche. L'espace utilisé est affiché dans « À propos ». Les photos ne sont pas incluses dans la sauvegarde JSON.
+- **Photos de session** : jusqu'à 5 photos par session, ajoutées en une fois ou une par une. Elles sont réduites à 1600 px en JPEG et stockées localement dans IndexedDB, et s'ouvrent en grand avec navigation par glissement ou flèches. L'appli demande un stockage persistant, et l'espace utilisé est affiché dans « À propos ». Les photos ne sont pas incluses dans la sauvegarde JSON.
 - **Gestes** : balayer horizontalement pour passer de Sessions à Analyse, appui long sur une session de la liste pour la supprimer (avec confirmation et « Annuler »).
 - **Paramètres** : nom de joueur, photo (recadrable : glisser, zoomer), couleur et main de départ préférée, repris sur les images partagées.
 - **Devise** au choix dans les Paramètres (€, $, £, CHF, C$), affichage uniquement, sans conversion.
@@ -45,13 +49,16 @@ Images à partager (version détaillée et version photo) :
 index.html            page unique
 css/app.css           styles
 js/app.js             interface
-js/db.js              base locale IndexedDB
+js/db.js              base locale IndexedDB (sessions, paramètres, photos)
 js/stats.js           calculs (fonctions pures, testées)
 js/live.js            session en direct (testée)
 js/profile.js         paramètres du joueur, couleurs
 js/share.js           image à partager
+js/cards.js           cartes et nom de la meilleure main (testé)
 js/format.js          utilitaires (montants, dates selon la langue)
 js/i18n.js            traductions (clés = textes français, anglais dans EN)
+js/version.js         numéro de version
+tools/bump.mjs        incrémente la version avant une mise en ligne
 sw.js                 service worker (hors ligne)
 manifest.webmanifest  installation
 tests/                tests des calculs
@@ -75,4 +82,4 @@ node --test
 ## Mise en ligne
 
 N'importe quel hébergement statique en HTTPS convient (GitHub Pages, Netlify, Cloudflare Pages).
-Avant chaque mise en ligne : `node tools/bump.mjs` (version majeur.date.mineur, affichée en bas de l'accueil et dans les Paramètres ; `--major` pour passer à la version majeure suivante).
+Avant chaque mise en ligne : `node tools/bump.mjs` (version majeur.date.mineur, affichée dans Paramètres, section À propos ; `--major` pour passer à la version majeure suivante).

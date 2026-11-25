@@ -217,7 +217,10 @@ $('list').addEventListener('pointerdown', e => {
 $('list').addEventListener('pointermove', e => { if (pressT && Math.hypot(e.clientX - pressXY[0], e.clientY - pressXY[1]) > 10) endPress(); });
 ['pointerup', 'pointercancel', 'pointerleave'].forEach(ev => $('list').addEventListener(ev, endPress));
 $('list').addEventListener('contextmenu', e => { if (e.target.closest('.row')) e.preventDefault(); });
-$('list').addEventListener('click', e => { if (pressFired) { pressFired = false; e.stopImmediatePropagation(); e.preventDefault(); } }, true);
+// Le clic qui suit l'appui long peut tomber sur le fond de la fenêtre de confirmation : on l'ignore.
+let pressEnd = 0;
+['pointerup', 'pointercancel'].forEach(ev => document.addEventListener(ev, () => { if (pressFired) { pressFired = false; pressEnd = Date.now(); } }, true));
+document.addEventListener('click', e => { if (Date.now() - pressEnd < 400) { pressEnd = 0; e.stopImmediatePropagation(); e.preventDefault(); } }, true);
 let delId = null;
 function askDelete(id) {
   const s = S.find(x => x.id === id); if (!s) return;
