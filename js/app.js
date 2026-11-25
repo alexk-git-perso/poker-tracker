@@ -218,7 +218,7 @@ async function share(kind, s) {
   document.querySelectorAll('#shpick [data-st]').forEach(b => { const im = b.querySelector('img'); if (im.src) URL.revokeObjectURL(im.src); im.src = URL.createObjectURL(shots[b.dataset.st].blob); });
   pick(pickSt);
   const native = canShareFiles(d);
-  $('shgo').textContent = native ? 'Partager' : 'Télécharger';
+  $('shgot').textContent = native ? 'Partager' : 'Télécharger';
   $('shcopy').hidden = !(window.ClipboardItem && navigator.clipboard?.write);
   $('shmsg').textContent = native ? 'Envoyez-la directement à vos amis (WhatsApp, Messages…).' : 'Téléchargez l’image, puis envoyez-la à vos amis.';
   $('shs').classList.add('on');

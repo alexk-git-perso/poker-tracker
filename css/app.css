@@ -162,3 +162,8 @@ html.modal,html.modal body{overflow:hidden;overscroll-behavior:none}
 .ranks button.red{color:#c8202f}
 .ranks button:disabled{opacity:.3;cursor:default}
 .suits button:focus-visible,.ranks button:focus-visible,.slots .pc:focus-visible{outline:3px solid var(--brass);outline-offset:2px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px}
+.ic{width:20px;height:20px;flex:none;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round}
+.ic circle{fill:currentColor;stroke:none}
+.btn.share{background:var(--brass);border-color:var(--brass);color:#16201b;font-weight:700;box-shadow:0 2px 8px color-mix(in srgb,var(--brass) 45%,transparent)}
+.btn.share:hover{filter:brightness(1.05)}

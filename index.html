@@ -61,7 +61,7 @@
   </div>
 
   <section id="v-sessions" role="tabpanel" aria-labelledby="tab-sessions">
-    <h2>Dernières sessions <span style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" id="shareAll">Partager mon bilan</button><button class="btn ghost" id="bk">Sauvegarde</button></span></h2>
+    <h2>Dernières sessions <span style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn share" id="shareAll"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg>Partager mon bilan</button><button class="btn ghost" id="bk">Sauvegarde</button></span></h2>
     <p class="note" id="sync">Vos sessions restent uniquement sur cet appareil. Rien n’est envoyé en ligne.</p>
     <div class="list" id="list"></div>
   </section>
@@ -109,7 +109,7 @@
   </div>
   <datalist id="lieux"></datalist><datalist id="jeux"></datalist>
   <div class="live" id="live"></div>
-  <div class="acts"><button type="button" class="btn ghost sp" id="del" hidden>Supprimer</button><button type="button" class="btn" id="shareOne" hidden>Partager en image</button><button type="button" class="btn" id="cancel">Annuler</button><button type="button" class="btn" id="golive">Démarrer maintenant</button><button class="btn pri">Enregistrer</button></div>
+  <div class="acts"><button type="button" class="btn ghost sp" id="del" hidden>Supprimer</button><button type="button" class="btn share" id="shareOne" hidden><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg>Partager en image</button><button type="button" class="btn" id="cancel">Annuler</button><button type="button" class="btn" id="golive">Démarrer maintenant</button><button class="btn pri">Enregistrer</button></div>
   <p class="note" id="golivehint" style="margin:10px 0 0">« Démarrer maintenant » lance le chrono avec ce buy-in : vous ajouterez les recaves et le cash-out pendant la partie.</p>
 </form></div>
 
@@ -129,7 +129,7 @@
     <button role="radio" data-st="poster" aria-checked="false"><img alt="Version photo"><span>Photo</span></button>
   </div>
   <p class="note" id="shmsg" style="margin-top:10px"></p>
-  <div class="acts"><button class="btn" id="shclose">Fermer</button><button class="btn" id="shcopy">Copier l’image</button><button class="btn pri" id="shgo">Partager</button></div>
+  <div class="acts"><button class="btn" id="shclose">Fermer</button><button class="btn" id="shcopy">Copier l’image</button><button class="btn pri" id="shgo"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg><span id="shgot">Partager</span></button></div>
 </div></div>
 
 <div class="sheet" id="pfs" role="dialog" aria-modal="true" aria-labelledby="pft"><div class="panel">
