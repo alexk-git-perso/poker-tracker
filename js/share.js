@@ -1,13 +1,15 @@
 // Carte 1080×1350 dessinée sur un canvas, puis partage natif (WhatsApp, Messages…) ou téléchargement.
 import { summary, cumulative, profitOf } from './stats.js';
 import { eur, fmtD } from './format.js';
+import { theme, initials, loadImage } from './profile.js';
 
-export async function card(kind, payload) {
+export async function card(kind, payload, P = {}) {
+  const th = theme(P), photo = await loadImage(P.photo), name = (P.name || '').trim();
   try { await Promise.all(['800 120px Rubik', '700 40px Rubik', '500 34px Inter'].map(f => document.fonts.load(f))); } catch (e) { /* polices système */ }
   const W = 1080, H = 1350, c = document.createElement('canvas'); c.width = W; c.height = H;
   const x = c.getContext('2d');
   const g = x.createRadialGradient(320, 0, 80, 540, 500, 1300);
-  g.addColorStop(0, '#13704c'); g.addColorStop(1, '#0a3626');
+  g.addColorStop(0, th.felt2); g.addColorStop(1, th.felt);
   x.fillStyle = g; x.fillRect(0, 0, W, H);
   x.strokeStyle = 'rgba(230,195,106,.5)'; x.lineWidth = 6; x.strokeRect(40, 40, W - 80, H - 80);
   const chip = (cx, cy, r, col) => {
@@ -17,7 +19,15 @@ export async function card(kind, payload) {
     x.fillStyle = 'rgba(255,255,255,.9)'; x.beginPath(); x.arc(cx, cy, r * .5, 0, 7); x.fill();
     x.fillStyle = col; x.beginPath(); x.arc(cx, cy, r * .4, 0, 7); x.fill();
   };
-  chip(930, 180, 70, '#c8202f'); chip(860, 250, 46, '#1f3a8a');
+  if (photo) {
+    // Photo du joueur en médaillon, cerclée de laiton
+    x.save(); x.beginPath(); x.arc(900, 200, 92, 0, 7); x.clip(); x.drawImage(photo, 808, 108, 184, 184); x.restore();
+    x.strokeStyle = '#e6c36a'; x.lineWidth = 8; x.beginPath(); x.arc(900, 200, 96, 0, 7); x.stroke();
+    chip(990, 290, 34, th.accent);
+  } else if (initials(name)) {
+    chip(900, 200, 96, th.accent);
+    x.font = '800 64px Rubik, sans-serif'; x.fillStyle = th.accent; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(initials(name), 900, 204); x.textBaseline = 'alphabetic';
+  } else { chip(930, 180, 70, th.accent); chip(860, 250, 46, '#1f3a8a'); }
   const T = (t, px, py, f, col, al) => { x.font = f; x.fillStyle = col; x.textAlign = al || 'left'; x.fillText(t, px, py); };
   const fit = (t, f0, max, w) => { let z = max; do { x.font = f0.replace('SZ', z); } while (x.measureText(t).width > w && (z -= 4) > 40); return f0.replace('SZ', z); };
   const rowsAt = (rows, y0, gap) => rows.forEach((r, i) => {
@@ -30,7 +40,7 @@ export async function card(kind, payload) {
     const s = payload, p = profitOf(s), t = s.type === 'tournoi';
     T(t ? 'Tournoi' : 'Cash game', 100, 170, '600 38px Inter', '#e6c36a');
     const title = s.lieu || 'Session de poker';
-    T(title, 100, 240, fit(title, '700 SZpx Rubik', 64, 720), '#f3efe4');
+    T(title, 100, 240, fit(title, '700 SZpx Rubik', 64, 660), '#f3efe4');
     T((s.jeu ? s.jeu + ' · ' : '') + fmtD(s.date), 100, 300, '500 34px Inter', '#cfe3d7');
     const big = eur(p, true); T(big, 100, 620, fit(big, '800 SZpx Rubik', 200, 880), p >= 0 ? '#e6c36a' : '#ff8a8f');
     const rows = [['Buy-in', eur(s.buyin)], ['Cash-out', eur(s.cashout)]];
@@ -39,8 +49,9 @@ export async function card(kind, payload) {
     rowsAt(rows, 780, 100);
   } else {
     const { list: L, label } = payload, k = summary(L);
-    T(label, 100, 170, '600 38px Inter', '#e6c36a');
-    if (L.length) T(fmtD(L[0].date) + ' → ' + fmtD(L[L.length - 1].date), 100, 230, '500 34px Inter', '#cfe3d7');
+    const head = name ? 'Bilan de ' + name + (label.startsWith('Bilan ') ? ' · ' + label.slice(6) : '') : label;
+    T(head, 100, 170, fit(head, '600 SZpx Inter', 38, 660), '#e6c36a');
+    if (L.length) T(fmtD(L[0].date) + ' → ' + fmtD(L[L.length - 1].date), 100, 230, fit(fmtD(L[0].date) + ' → ' + fmtD(L[L.length - 1].date), '500 SZpx Inter', 34, 660), '#cfe3d7');
     const big = eur(k.profit, true); T(big, 100, 440, fit(big, '800 SZpx Rubik', 190, 880), k.profit >= 0 ? '#e6c36a' : '#ff8a8f');
     const v = cumulative(L).map(q => q.v);
     if (v.length) {
@@ -53,7 +64,7 @@ export async function card(kind, payload) {
     }
     rowsAt([['Sessions', String(k.n)], ['Bénéfice horaire', k.hourly == null ? '—' : eur(k.hourly, true) + '/h'], ['Sessions gagnantes', k.win == null ? '—' : Math.round(k.win * 100) + ' %']], 960, 90);
   }
-  T('Suivi poker', 100, H - 90, '700 30px Rubik', 'rgba(243,239,228,.75)');
+  T(name && kind === 'one' ? name + ' · Suivi poker' : 'Suivi poker', 100, H - 90, '700 30px Rubik', 'rgba(243,239,228,.75)');
   return new Promise(ok => c.toBlob(ok, 'image/png'));
 }
 

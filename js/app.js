@@ -2,9 +2,10 @@ import * as db from './db.js';
 import { summary, byGroup, byMonth, variance, cumulative, sortByDate, profitOf } from './stats.js';
 import { esc, eur, fmtD, fmtM, today, uid } from './format.js';
 import { card, shareImage, canShareFiles, download } from './share.js';
+import { THEMES, applyTheme, initials, photoFromFile } from './profile.js';
 
 const $ = id => document.getElementById(id);
-let S = [], filter = 'all', editing = null, ftype = 'cash', lastDel = null, tt, shot = null, stored = true;
+let P = {}, S = [], filter = 'all', editing = null, ftype = 'cash', lastDel = null, tt, shot = null, stored = true;
 const data = () => S;
 const view = () => sortByDate(data().filter(s => filter === 'all' || s.type === filter));
 const label = () => (filter === 'cash' ? 'Bilan cash game' : filter === 'tournoi' ? 'Bilan tournois' : 'Mon bilan poker');
@@ -79,7 +80,7 @@ function draw() {
   const last = pts[pts.length - 1], lx = x(pts.length - 1), ly = y(last.v), mid = Math.floor((pts.length - 1) / 2);
   svg.innerHTML = `<defs><linearGradient id="gA" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e6c36a" stop-opacity=".55"/><stop offset="1" stop-color="#e6c36a" stop-opacity=".05"/></linearGradient></defs>${g}
   <path d="${d}V${y(0)}H${x(0)}Z" fill="url(#gA)"/><path d="${d}" fill="none" stroke="#e6c36a" stroke-width="3" stroke-linejoin="round"/>
-  <circle cx="${lx}" cy="${ly}" r="6" fill="#e6c36a" stroke="#0d4a33" stroke-width="3"/><text x="${lx + 10}" y="${ly + 5}" style="font:700 15px Rubik,sans-serif;fill:#f3efe4">${esc(eur(last.v, true))}</text>
+  <circle cx="${lx}" cy="${ly}" r="6" fill="#e6c36a" stroke="var(--felt)" stroke-width="3"/><text x="${lx + 10}" y="${ly + 5}" style="font:700 15px Rubik,sans-serif;fill:#f3efe4">${esc(eur(last.v, true))}</text>
   <text x="${ml}" y="${H - 6}">${esc(fmtD(L[0].date))}</text>${W >= 520 && pts.length > 4 ? `<text x="${x(mid)}" y="${H - 6}" text-anchor="middle">${esc(fmtD(pts[mid].d))}</text>` : ''}<text x="${W - mr}" y="${H - 6}" text-anchor="end">${esc(fmtD(last.d))}</text>`;
 }
 new ResizeObserver(draw).observe(svg);
@@ -168,7 +169,7 @@ $('undo').onclick = () => { if (lastDel) { S = S.concat(lastDel); persistOne(las
 /* ---------- Fenêtres : fermeture ---------- */
 const sheets = ['sh', 'bks', 'shs'];
 sheets.forEach(id => $(id).addEventListener('click', e => { if (e.target.id === id) id === 'sh' ? closeForm() : $(id).classList.remove('on'); }));
-document.addEventListener('keydown', e => { if (e.key === 'Escape') { if ($('sh').classList.contains('on')) closeForm(); $('bks').classList.remove('on'); $('shs').classList.remove('on'); } });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') { if ($('sh').classList.contains('on')) closeForm(); ['bks', 'shs', 'pfs'].forEach(id => $(id).classList.remove('on')); } });
 
 /* ---------- Sauvegarde ---------- */
 $('bk').onclick = () => { $('bktxt').value = JSON.stringify(S, null, 1); $('bkmsg').textContent = ''; $('bks').classList.add('on'); };
@@ -194,7 +195,7 @@ $('bkimp').onclick = () => {
 
 /* ---------- Partage en image ---------- */
 async function share(kind, s) {
-  const b = await card(kind, kind === 'one' ? s : { list: view(), label: label() });
+  const b = await card(kind, kind === 'one' ? s : { list: view(), label: label() }, P);
   if (!b) { toast('Image impossible à créer sur cet appareil.'); return; }
   shot = { blob: b, name: kind === 'one' ? 'poker-' + s.date + '.png' : 'poker-bilan-' + today() + '.png' };
   const im = $('shimg'); if (im.src) URL.revokeObjectURL(im.src); im.src = URL.createObjectURL(b);
@@ -216,6 +217,38 @@ $('shcopy').onclick = async () => {
   catch (e) { $('shmsg').textContent = 'Copie refusée par ce navigateur : utilisez Partager.'; }
 };
 
+/* ---------- Paramètres du joueur ---------- */
+const GEAR = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg>';
+function avatar(el) {
+  el.replaceChildren();
+  if (P.photo) { const i = new Image(); i.src = P.photo; i.alt = ''; el.append(i); }
+  else if (initials(P.name)) el.textContent = initials(P.name);
+  else el.innerHTML = GEAR;
+}
+function renderProfile() {
+  applyTheme(P);
+  avatar($('avimg')); avatar($('pfav'));
+  $('pname').textContent = P.name || '';
+  $('pname').hidden = !P.name;
+  $('pfnophoto').hidden = !P.photo;
+  $('pfthemes').innerHTML = Object.entries(THEMES).map(([k, t]) =>
+    `<button role="radio" data-k="${k}" aria-checked="${(P.theme || 'vert') === k}" style="--a:${t.accent}"><i style="background:linear-gradient(135deg,${t.felt2},${t.felt})"></i>${esc(t.name)}</button>`).join('');
+  draw();
+}
+const saveProfile = () => { db.setProfile(P).catch(() => toast('Paramètres non enregistrés sur cet appareil.')); renderProfile(); };
+$('prof').onclick = () => { $('pfname').value = P.name || ''; $('pfs').classList.add('on'); };
+$('pfclose').onclick = () => $('pfs').classList.remove('on');
+$('pfs').addEventListener('click', e => { if (e.target.id === 'pfs') $('pfs').classList.remove('on'); });
+$('pfname').onchange = () => { P = { ...P, name: $('pfname').value.trim() }; saveProfile(); };
+$('pfname').oninput = () => { $('pname').textContent = $('pfname').value.trim(); $('pname').hidden = !$('pfname').value.trim(); };
+$('pfphoto').onchange = async () => {
+  const f = $('pfphoto').files[0]; if (!f) return;
+  try { P = { ...P, photo: await photoFromFile(f) }; saveProfile(); } catch (e) { toast('Cette image n’a pas pu être lue.'); }
+  $('pfphoto').value = '';
+};
+$('pfnophoto').onclick = () => { const { photo, ...rest } = P; P = rest; saveProfile(); };
+$('pfthemes').onclick = e => { const b = e.target.closest('[data-k]'); if (b) { P = { ...P, theme: b.dataset.k }; saveProfile(); } };
+
 /* ---------- Installation ---------- */
 let deferred = null;
 const standalone = matchMedia('(display-mode: standalone)').matches || navigator.standalone;
@@ -228,7 +261,9 @@ if (!standalone && /iphone|ipad|ipod/i.test(navigator.userAgent)) {
 if ('serviceWorker' in navigator) addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
 
 /* ---------- Démarrage ---------- */
+renderProfile();
 render();
+db.getProfile().then(p => { P = p; if ($('pfs').classList.contains('on')) $('pfname').value = P.name || ''; renderProfile(); }).catch(() => {});
 db.all().then(rows => {
   // Ancienne version : retire toute session d'exemple qui aurait été enregistrée, sans toucher aux vraies
   const demo = rows.filter(s => s.demo || /^demo\d+$/.test(s.id));

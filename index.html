@@ -19,7 +19,10 @@
 <body>
 <header class="felt"><div class="wrap">
   <div class="top">
-    <h1>Mes sessions de poker</h1>
+    <div class="who">
+      <button class="av" id="prof" aria-label="Paramètres du joueur"><span id="avimg"></span></button>
+      <div><h1 id="title">Mes sessions de poker</h1><span class="pname" id="pname"></span></div>
+    </div>
     <div class="seg" role="group" aria-label="Type de partie" id="flt">
       <button data-f="all" aria-pressed="true">Tout</button><button data-f="cash" aria-pressed="false">Cash game</button><button data-f="tournoi" aria-pressed="false">Tournoi</button>
     </div>
@@ -99,6 +102,22 @@
   <img id="shimg" alt="Aperçu de l’image à partager" style="display:block;width:100%;max-width:360px;margin:0 auto;border-radius:14px;border:1px solid var(--line)">
   <p class="note" id="shmsg" style="margin-top:10px"></p>
   <div class="acts"><button class="btn" id="shclose">Fermer</button><button class="btn" id="shcopy">Copier l’image</button><button class="btn pri" id="shgo">Partager</button></div>
+</div></div>
+
+<div class="sheet" id="pfs" role="dialog" aria-modal="true" aria-labelledby="pft"><div class="panel">
+  <h3 id="pft">Paramètres</h3>
+  <div class="pfrow">
+    <span class="av big" id="pfav"></span>
+    <div style="display:grid;gap:8px">
+      <label class="btn" style="display:inline-flex;align-items:center;justify-content:center;color:var(--ink)">Choisir une photo<input type="file" id="pfphoto" accept="image/*" hidden></label>
+      <button class="btn ghost" id="pfnophoto" hidden>Retirer la photo</button>
+    </div>
+  </div>
+  <label style="margin-top:14px">Nom de joueur<input id="pfname" maxlength="40" placeholder="Votre nom ou pseudo" autocomplete="nickname"></label>
+  <p class="lbl">Couleur</p>
+  <div class="sw" id="pfthemes" role="radiogroup" aria-label="Couleur"></div>
+  <p class="note" style="margin-top:14px">Le nom, la photo et la couleur apparaissent aussi sur les images que vous partagez. Tout reste sur cet appareil.</p>
+  <div class="acts"><button class="btn pri" id="pfclose">Terminé</button></div>
 </div></div>
 
 <div class="toast" id="toast"><span id="tmsg"></span><button id="undo">Annuler</button></div>
